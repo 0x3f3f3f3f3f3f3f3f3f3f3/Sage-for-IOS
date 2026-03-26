@@ -1,0 +1,492 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A00000000000000000000101 /* SageApp/App/SageApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000201 /* SageApp/App/SageApp.swift */; };
+		A00000000000000000000102 /* SageApp/Architecture/AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000202 /* SageApp/Architecture/AppEnvironment.swift */; };
+		A00000000000000000000103 /* SageApp/DesignSystem/DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000203 /* SageApp/DesignSystem/DesignSystem.swift */; };
+		A00000000000000000000104 /* SageApp/Shared/Models/APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000204 /* SageApp/Shared/Models/APIModels.swift */; };
+		A00000000000000000000105 /* SageApp/Shared/Storage/KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000205 /* SageApp/Shared/Storage/KeychainStore.swift */; };
+		A00000000000000000000106 /* SageApp/Shared/Storage/AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000206 /* SageApp/Shared/Storage/AppSettingsStore.swift */; };
+		A00000000000000000000107 /* SageApp/Shared/Storage/DraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000207 /* SageApp/Shared/Storage/DraftStore.swift */; };
+		A00000000000000000000108 /* SageApp/Shared/API/APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000208 /* SageApp/Shared/API/APIClient.swift */; };
+		A00000000000000000000109 /* SageApp/Shared/Notifications/NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000209 /* SageApp/Shared/Notifications/NotificationScheduler.swift */; };
+		A0000000000000000000010A /* SageApp/Features/Auth/AuthFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000020A /* SageApp/Features/Auth/AuthFeature.swift */; };
+		A0000000000000000000010B /* SageApp/Features/Inbox/InboxFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000020B /* SageApp/Features/Inbox/InboxFeature.swift */; };
+		A0000000000000000000010C /* SageApp/Features/Tasks/TasksFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000020C /* SageApp/Features/Tasks/TasksFeature.swift */; };
+		A0000000000000000000010D /* SageApp/Features/Timeline/TimelineFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000020D /* SageApp/Features/Timeline/TimelineFeature.swift */; };
+		A0000000000000000000010E /* SageApp/Features/Notes/NotesFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000020E /* SageApp/Features/Notes/NotesFeature.swift */; };
+		A0000000000000000000010F /* SageApp/Features/Tags/TagsFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000020F /* SageApp/Features/Tags/TagsFeature.swift */; };
+		A00000000000000000000110 /* SageApp/Features/Search/SearchFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000210 /* SageApp/Features/Search/SearchFeature.swift */; };
+		A00000000000000000000111 /* SageApp/Features/Settings/SettingsFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000211 /* SageApp/Features/Settings/SettingsFeature.swift */; };
+		A00000000000000000000112 /* SageApp/Features/AI/AIFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000212 /* SageApp/Features/AI/AIFeature.swift */; };
+		A00000000000000000000113 /* SageApp/Resources/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000213 /* SageApp/Resources/Assets.xcassets */; };
+		A00000000000000000000114 /* SageApp/Resources/LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000214 /* SageApp/Resources/LaunchScreen.storyboard */; };
+		A00000000000000000000115 /* SageApp/Resources/Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000215 /* SageApp/Resources/Localizable.xcstrings */; };
+		A00000000000000000000116 /* SageAppTests/SageAppTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000216 /* SageAppTests/SageAppTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A00000000000000000000301 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000401 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A00000000000000000000501;
+			remoteInfo = SageApp;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		A00000000000000000000201 /* SageApp/App/SageApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/App/SageApp.swift; sourceTree = "<group>"; };
+		A00000000000000000000202 /* SageApp/Architecture/AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Architecture/AppEnvironment.swift; sourceTree = "<group>"; };
+		A00000000000000000000203 /* SageApp/DesignSystem/DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/DesignSystem/DesignSystem.swift; sourceTree = "<group>"; };
+		A00000000000000000000204 /* SageApp/Shared/Models/APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Shared/Models/APIModels.swift; sourceTree = "<group>"; };
+		A00000000000000000000205 /* SageApp/Shared/Storage/KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Shared/Storage/KeychainStore.swift; sourceTree = "<group>"; };
+		A00000000000000000000206 /* SageApp/Shared/Storage/AppSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Shared/Storage/AppSettingsStore.swift; sourceTree = "<group>"; };
+		A00000000000000000000207 /* SageApp/Shared/Storage/DraftStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Shared/Storage/DraftStore.swift; sourceTree = "<group>"; };
+		A00000000000000000000208 /* SageApp/Shared/API/APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Shared/API/APIClient.swift; sourceTree = "<group>"; };
+		A00000000000000000000209 /* SageApp/Shared/Notifications/NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Shared/Notifications/NotificationScheduler.swift; sourceTree = "<group>"; };
+		A0000000000000000000020A /* SageApp/Features/Auth/AuthFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/Auth/AuthFeature.swift; sourceTree = "<group>"; };
+		A0000000000000000000020B /* SageApp/Features/Inbox/InboxFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/Inbox/InboxFeature.swift; sourceTree = "<group>"; };
+		A0000000000000000000020C /* SageApp/Features/Tasks/TasksFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/Tasks/TasksFeature.swift; sourceTree = "<group>"; };
+		A0000000000000000000020D /* SageApp/Features/Timeline/TimelineFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/Timeline/TimelineFeature.swift; sourceTree = "<group>"; };
+		A0000000000000000000020E /* SageApp/Features/Notes/NotesFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/Notes/NotesFeature.swift; sourceTree = "<group>"; };
+		A0000000000000000000020F /* SageApp/Features/Tags/TagsFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/Tags/TagsFeature.swift; sourceTree = "<group>"; };
+		A00000000000000000000210 /* SageApp/Features/Search/SearchFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/Search/SearchFeature.swift; sourceTree = "<group>"; };
+		A00000000000000000000211 /* SageApp/Features/Settings/SettingsFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/Settings/SettingsFeature.swift; sourceTree = "<group>"; };
+		A00000000000000000000212 /* SageApp/Features/AI/AIFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/AI/AIFeature.swift; sourceTree = "<group>"; };
+		A00000000000000000000213 /* SageApp/Resources/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = SageApp/Resources/Assets.xcassets; sourceTree = "<group>"; };
+		A00000000000000000000214 /* SageApp/Resources/LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = SageApp/Resources/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		A00000000000000000000215 /* SageApp/Resources/Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = SageApp/Resources/Localizable.xcstrings; sourceTree = "<group>"; };
+		A00000000000000000000216 /* SageAppTests/SageAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageAppTests/SageAppTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000217 /* SageApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = SageApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000218 /* SageAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = SageAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A00000000000000000000601 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A00000000000000000000602 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A00000000000000000000701 = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000702 /* Products */,
+				A00000000000000000000703 /* App */,
+				A00000000000000000000704 /* Architecture */,
+				A00000000000000000000705 /* DesignSystem */,
+				A00000000000000000000706 /* Shared */,
+				A00000000000000000000707 /* Features */,
+				A00000000000000000000708 /* Resources */,
+				A00000000000000000000709 /* Tests */,
+			);
+			sourceTree = "<group>";
+		};
+		A00000000000000000000702 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000217 /* SageApp.app */,
+				A00000000000000000000218 /* SageAppTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000703 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000201 /* SageApp/App/SageApp.swift */,
+			);
+			name = App;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000704 /* Architecture */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000202 /* SageApp/Architecture/AppEnvironment.swift */,
+			);
+			name = Architecture;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000705 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000203 /* SageApp/DesignSystem/DesignSystem.swift */,
+			);
+			name = DesignSystem;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000706 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000204 /* SageApp/Shared/Models/APIModels.swift */,
+				A00000000000000000000205 /* SageApp/Shared/Storage/KeychainStore.swift */,
+				A00000000000000000000206 /* SageApp/Shared/Storage/AppSettingsStore.swift */,
+				A00000000000000000000207 /* SageApp/Shared/Storage/DraftStore.swift */,
+				A00000000000000000000208 /* SageApp/Shared/API/APIClient.swift */,
+				A00000000000000000000209 /* SageApp/Shared/Notifications/NotificationScheduler.swift */,
+			);
+			name = Shared;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000707 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000020A /* SageApp/Features/Auth/AuthFeature.swift */,
+				A0000000000000000000020B /* SageApp/Features/Inbox/InboxFeature.swift */,
+				A0000000000000000000020C /* SageApp/Features/Tasks/TasksFeature.swift */,
+				A0000000000000000000020D /* SageApp/Features/Timeline/TimelineFeature.swift */,
+				A0000000000000000000020E /* SageApp/Features/Notes/NotesFeature.swift */,
+				A0000000000000000000020F /* SageApp/Features/Tags/TagsFeature.swift */,
+				A00000000000000000000210 /* SageApp/Features/Search/SearchFeature.swift */,
+				A00000000000000000000211 /* SageApp/Features/Settings/SettingsFeature.swift */,
+				A00000000000000000000212 /* SageApp/Features/AI/AIFeature.swift */,
+			);
+			name = Features;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000708 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000213 /* SageApp/Resources/Assets.xcassets */,
+				A00000000000000000000214 /* SageApp/Resources/LaunchScreen.storyboard */,
+				A00000000000000000000215 /* SageApp/Resources/Localizable.xcstrings */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000709 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000216 /* SageAppTests/SageAppTests.swift */,
+			);
+			name = Tests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A00000000000000000000501 /* SageApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000801 /* Build configuration list for PBXNativeTarget "SageApp" */;
+			buildPhases = (
+				A00000000000000000000901 /* Sources */,
+				A00000000000000000000601 /* Frameworks */,
+				A00000000000000000000902 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SageApp;
+			productName = SageApp;
+			productReference = A00000000000000000000217 /* SageApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A00000000000000000000502 /* SageAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000802 /* Build configuration list for PBXNativeTarget "SageAppTests" */;
+			buildPhases = (
+				A00000000000000000000903 /* Sources */,
+				A00000000000000000000602 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A00000000000000000000302 /* PBXTargetDependency */,
+			);
+			name = SageAppTests;
+			productName = SageAppTests;
+			productReference = A00000000000000000000218 /* SageAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A00000000000000000000401 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1700;
+				LastUpgradeCheck = 1700;
+				TargetAttributes = {
+					A00000000000000000000501 = {
+						CreatedOnToolsVersion = 17.0;
+					};
+					A00000000000000000000502 = {
+						CreatedOnToolsVersion = 17.0;
+						TestTargetID = A00000000000000000000501;
+					};
+				};
+			};
+			buildConfigurationList = A00000000000000000000800 /* Build configuration list for PBXProject "SageApp" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				"zh-Hans",
+			);
+			mainGroup = A00000000000000000000701;
+			productRefGroup = A00000000000000000000702 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A00000000000000000000501 /* SageApp */,
+				A00000000000000000000502 /* SageAppTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A00000000000000000000902 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000113 /* SageApp/Resources/Assets.xcassets in Resources */,
+				A00000000000000000000114 /* SageApp/Resources/LaunchScreen.storyboard in Resources */,
+				A00000000000000000000115 /* SageApp/Resources/Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A00000000000000000000901 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000101 /* SageApp/App/SageApp.swift in Sources */,
+				A00000000000000000000102 /* SageApp/Architecture/AppEnvironment.swift in Sources */,
+				A00000000000000000000103 /* SageApp/DesignSystem/DesignSystem.swift in Sources */,
+				A00000000000000000000104 /* SageApp/Shared/Models/APIModels.swift in Sources */,
+				A00000000000000000000105 /* SageApp/Shared/Storage/KeychainStore.swift in Sources */,
+				A00000000000000000000106 /* SageApp/Shared/Storage/AppSettingsStore.swift in Sources */,
+				A00000000000000000000107 /* SageApp/Shared/Storage/DraftStore.swift in Sources */,
+				A00000000000000000000108 /* SageApp/Shared/API/APIClient.swift in Sources */,
+				A00000000000000000000109 /* SageApp/Shared/Notifications/NotificationScheduler.swift in Sources */,
+				A0000000000000000000010A /* SageApp/Features/Auth/AuthFeature.swift in Sources */,
+				A0000000000000000000010B /* SageApp/Features/Inbox/InboxFeature.swift in Sources */,
+				A0000000000000000000010C /* SageApp/Features/Tasks/TasksFeature.swift in Sources */,
+				A0000000000000000000010D /* SageApp/Features/Timeline/TimelineFeature.swift in Sources */,
+				A0000000000000000000010E /* SageApp/Features/Notes/NotesFeature.swift in Sources */,
+				A0000000000000000000010F /* SageApp/Features/Tags/TagsFeature.swift in Sources */,
+				A00000000000000000000110 /* SageApp/Features/Search/SearchFeature.swift in Sources */,
+				A00000000000000000000111 /* SageApp/Features/Settings/SettingsFeature.swift in Sources */,
+				A00000000000000000000112 /* SageApp/Features/AI/AIFeature.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A00000000000000000000903 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000116 /* SageAppTests/SageAppTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A00000000000000000000302 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A00000000000000000000501 /* SageApp */;
+			targetProxy = A00000000000000000000301 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A00000000000000000000A00 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A00000000000000000000A01 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A00000000000000000000A02 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MFL253N64L;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SageApp/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Sage;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.konjac.sage.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A00000000000000000000A03 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MFL253N64L;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SageApp/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Sage;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.konjac.sage.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A00000000000000000000A04 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MFL253N64L;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.sage.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SageApp.app/SageApp";
+			};
+			name = Debug;
+		};
+		A00000000000000000000A05 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MFL253N64L;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.sage.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SageApp.app/SageApp";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A00000000000000000000800 /* Build configuration list for PBXProject "SageApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000A00 /* Debug */,
+				A00000000000000000000A01 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A00000000000000000000801 /* Build configuration list for PBXNativeTarget "SageApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000A02 /* Debug */,
+				A00000000000000000000A03 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A00000000000000000000802 /* Build configuration list for PBXNativeTarget "SageAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000A04 /* Debug */,
+				A00000000000000000000A05 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A00000000000000000000401 /* Project object */;
+}
