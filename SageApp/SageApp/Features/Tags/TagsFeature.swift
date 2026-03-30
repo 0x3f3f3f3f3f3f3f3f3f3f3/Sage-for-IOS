@@ -33,13 +33,19 @@ struct TagsView: View {
     @Environment(AppEnvironment.self) private var environment
     @Environment(AppSettingsStore.self) private var settings
     @State private var viewModel = TagsViewModel()
-    @State private var selectedTag: TagDTO?
     @State private var editingTag: TagDTO?
     @State private var isCreatingTag = false
 
     var body: some View {
         List {
-            if viewModel.isLoading {
+            if let errorMessage = viewModel.errorMessage {
+                ErrorStateView(message: errorMessage, retry: {
+                    Task { @MainActor in
+                        await viewModel.load(using: environment.apiClient)
+                    }
+                })
+                .listRowBackground(Color.clear)
+            } else if viewModel.isLoading {
                 LoadingStateView()
                     .listRowBackground(Color.clear)
             } else if viewModel.tags.isEmpty {
@@ -47,15 +53,28 @@ struct TagsView: View {
                     .listRowBackground(Color.clear)
             } else {
                 ForEach(viewModel.tags) { tag in
-                    Button {
-                        selectedTag = tag
+                    NavigationLink {
+                        TagDetailView(tag: tag, availableTags: viewModel.tags)
                     } label: {
                         HStack {
-                            TagChipView(tag: tag)
+                            Circle()
+                                .fill(Color(hex: tag.color))
+                                .frame(width: 12, height: 12)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(tag.name)
+                                    .font(.body.weight(.semibold))
+                                HStack(spacing: 8) {
+                                    MetadataBadge(systemName: "checklist", title: "\(tag.taskCount ?? 0)", tint: .secondary)
+                                    MetadataBadge(systemName: "note.text", title: "\(tag.noteCount ?? 0)", tint: .secondary)
+                                }
+                            }
                             Spacer()
-                            Text("\((tag.taskCount ?? 0) + (tag.noteCount ?? 0))")
-                                .foregroundStyle(.secondary)
+                            Image(systemName: "chevron.right")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.tertiary)
                         }
+                        .padding(.vertical, 8)
                     }
                     .sageListRowChrome()
                     .swipeActions {
@@ -83,9 +102,6 @@ struct TagsView: View {
         .task {
             await viewModel.load(using: environment.apiClient)
         }
-        .sheet(item: $selectedTag) { tag in
-            TagDetailView(tag: tag)
-        }
         .sheet(item: $editingTag) { tag in
             TagEditorSheet(tag: tag) {
                 Task { @MainActor in
@@ -106,10 +122,11 @@ struct TagsView: View {
 @MainActor
 struct TagDetailView: View {
     @Environment(AppEnvironment.self) private var environment
+    @Environment(AppSettingsStore.self) private var settings
     let tag: TagDTO
+    let availableTags: [TagDTO]
     @State private var viewModel = TagsViewModel()
-    @State private var selectedTask: TaskDTO?
-    @State private var selectedNote: NoteDTO?
+    @State private var editingTag: TagDTO?
 
     var body: some View {
         List {
@@ -125,31 +142,33 @@ struct TagDetailView: View {
                     .sageListRowChrome()
                 }
                 if !detail.tasks.isEmpty {
-                    Section("tasks.title") {
+                    Section(localizedAppText(for: settings.language, chinese: "相关任务", english: "Related tasks")) {
                         ForEach(detail.tasks) { task in
-                            Button {
-                                selectedTask = task
+                            NavigationLink {
+                                TaskDetailView(task: task, availableTags: availableTags) { _ in } onDelete: { _ in }
                             } label: {
-                                TaskRow(task: task, cycle: {})
+                                TaskListRowContent(task: task, language: settings.language, scheduledMinutes: 0)
                             }
-                            .sageListRowChrome()
+                            .buttonStyle(.plain)
                         }
                     }
                 }
                 if !detail.notes.isEmpty {
-                    Section("notes.title") {
+                    Section(localizedAppText(for: settings.language, chinese: "相关笔记", english: "Related notes")) {
                         ForEach(detail.notes) { note in
-                            Button {
-                                selectedNote = note
+                            NavigationLink {
+                                NoteDetailView(note: note, availableTags: availableTags) { _ in } onDelete: {}
                             } label: {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text(note.title)
+                                        .font(.body.weight(.semibold))
                                     Text(note.summary)
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
+                                        .lineLimit(2)
                                 }
                             }
-                            .sageListRowChrome()
+                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -160,14 +179,22 @@ struct TagDetailView: View {
         }
         .sageListChrome()
         .navigationTitle(tag.name)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("common.edit") {
+                    editingTag = tag
+                }
+            }
+        }
         .task {
             await viewModel.loadDetail(tagRef: tag.id, using: environment.apiClient)
         }
-        .sheet(item: $selectedTask) { task in
-            TaskEditorSheet(task: task, tags: viewModel.detail?.tasks.first?.tags ?? []) { _ in }
-        }
-        .sheet(item: $selectedNote) { note in
-            NoteEditorSheet(note: note, tags: viewModel.detail?.notes.first?.tags ?? []) { _ in }
+        .sheet(item: $editingTag) { currentTag in
+            TagEditorSheet(tag: currentTag) {
+                Task { @MainActor in
+                    await viewModel.loadDetail(tagRef: tag.id, using: environment.apiClient)
+                }
+            }
         }
     }
 }

@@ -20,62 +20,88 @@ struct SettingsView: View {
     ]
 
     var body: some View {
-        List {
-            Section {
-                SettingsRow(title: "settings.theme", subtitle: nil) {
-                    Picker("", selection: Binding(get: { environment.settings.theme }, set: { updateTheme($0) })) {
-                        ForEach(AppTheme.allCases) { theme in
-                            Text(LocalizedStringKey(theme.localizationKey)).tag(theme)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 240)
-                }
-                .sageListRowChrome()
+        Form {
+            if let currentUser = environment.authStore.currentUser {
+                Section(localizedAppText(for: settings.language, chinese: "账户", english: "Account")) {
+                    LabeledContent(
+                        localizedAppText(for: settings.language, chinese: "用户名", english: "Username"),
+                        value: currentUser.username
+                    )
 
-                SettingsRow(title: "settings.language", subtitle: nil) {
-                    Picker("", selection: Binding(get: { environment.settings.language }, set: { updateLanguage($0) })) {
-                        ForEach(AppLanguage.allCases) { language in
-                            Text(LocalizedStringKey(language.localizationKey)).tag(language)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 240)
-                }
-                .sageListRowChrome()
-
-                SettingsRow(title: "settings.timezone", subtitle: environment.settings.effectiveTimeZoneIdentifier) {
-                    VStack(alignment: .trailing) {
-                        Picker("", selection: Binding(get: { environment.settings.timezoneMode }, set: { updateTimezoneMode($0) })) {
-                            ForEach(TimezoneMode.allCases) { mode in
-                                Text(LocalizedStringKey(mode.localizationKey)).tag(mode)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .frame(width: 240)
-
-                        if environment.settings.timezoneMode == .manual {
-                            Picker("", selection: Binding(get: { environment.settings.timezoneOverride ?? "UTC" }, set: { updateTimezoneOverride($0) })) {
-                                ForEach(commonTimezones, id: \.self) { timezone in
-                                    Text(timezone).tag(timezone)
-                                }
-                            }
-                            .labelsHidden()
-                        }
+                    if let session = environment.authStore.session {
+                        LabeledContent(
+                            localizedAppText(for: settings.language, chinese: "设备", english: "Device"),
+                            value: session.deviceName ?? UIDevice.current.model
+                        )
+                        LabeledContent(
+                            localizedAppText(for: settings.language, chinese: "会话到期", english: "Session expires"),
+                            value: formattedDateTime(session.expiresAt)
+                        )
                     }
                 }
-                .sageListRowChrome()
             }
 
-            Section {
-                SettingsRow(title: "settings.backendURL", subtitle: backendURLHelpText) {
-                    TextField(AppSettingsStore.defaultServerBaseURL, text: $backendURL)
-                        .multilineTextAlignment(.trailing)
-                        .onSubmit {
-                            environment.settings.setServerBaseURL(backendURL)
-                        }
+            Section(localizedAppText(for: settings.language, chinese: "外观", english: "Appearance")) {
+                Picker("settings.theme", selection: Binding(get: { environment.settings.theme }, set: { updateTheme($0) })) {
+                    ForEach(AppTheme.allCases) { theme in
+                        Text(LocalizedStringKey(theme.localizationKey)).tag(theme)
+                    }
                 }
-                .sageListRowChrome()
+            }
+
+            Section(localizedAppText(for: settings.language, chinese: "语言", english: "Language")) {
+                Picker("settings.language", selection: Binding(get: { environment.settings.language }, set: { updateLanguage($0) })) {
+                    ForEach(AppLanguage.allCases) { language in
+                        Text(LocalizedStringKey(language.localizationKey)).tag(language)
+                    }
+                }
+            }
+
+            Section(localizedAppText(for: settings.language, chinese: "时区", english: "Timezone")) {
+                Picker("settings.timezone", selection: Binding(get: { environment.settings.timezoneMode }, set: { updateTimezoneMode($0) })) {
+                    ForEach(TimezoneMode.allCases) { mode in
+                        Text(LocalizedStringKey(mode.localizationKey)).tag(mode)
+                    }
+                }
+
+                if environment.settings.timezoneMode == .manual {
+                    Picker(
+                        localizedAppText(for: settings.language, chinese: "时区", english: "Timezone"),
+                        selection: Binding(get: { environment.settings.timezoneOverride ?? "UTC" }, set: { updateTimezoneOverride($0) })
+                    ) {
+                        ForEach(commonTimezones, id: \.self) { timezone in
+                            Text(timezone).tag(timezone)
+                        }
+                    }
+                } else {
+                    LabeledContent(
+                        localizedAppText(for: settings.language, chinese: "当前", english: "Current"),
+                        value: environment.settings.effectiveTimeZoneIdentifier
+                    )
+                }
+            }
+
+            Section(localizedAppText(for: settings.language, chinese: "后端", english: "Backend")) {
+                TextField(AppSettingsStore.defaultServerBaseURL, text: $backendURL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .onSubmit {
+                        environment.settings.setServerBaseURL(backendURL)
+                    }
+
+                Text(backendURLHelpText)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section(localizedAppText(for: settings.language, chinese: "提醒", english: "Notifications")) {
+                Text(localizedAppText(
+                    for: settings.language,
+                    chinese: "任务提醒会使用当前语言、时区和系统通知设置。",
+                    english: "Task reminders use the current language, timezone, and system notification settings."
+                ))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
             }
 
             Section {
@@ -86,13 +112,9 @@ struct SettingsView: View {
                 } label: {
                     Label("settings.logout", systemImage: "rectangle.portrait.and.arrow.right")
                 }
-                .sageListRowChrome()
             }
         }
-        .sageListChrome()
         .navigationTitle(localizedAppText(for: settings.language, chinese: "设置", english: "Settings"))
-        .preferredColorScheme(environment.settings.sheetPreferredColorScheme)
-        .id("settings-\(environment.settings.theme.rawValue)-\(environment.settings.sheetPreferredColorScheme == .dark ? "dark" : "light")")
         .task {
             backendURL = environment.settings.serverBaseURL
         }
@@ -166,6 +188,10 @@ struct SettingsView: View {
         environment.settings.language == .chineseSimplified
             ? "后端地址应为 http://154.83.158.137:3003。"
             : "Use http://154.83.158.137:3003 as the backend URL."
+    }
+
+    private func formattedDateTime(_ string: String) -> String {
+        Date.fromISO8601(string)?.formatted(date: .abbreviated, time: .shortened) ?? string
     }
 }
 

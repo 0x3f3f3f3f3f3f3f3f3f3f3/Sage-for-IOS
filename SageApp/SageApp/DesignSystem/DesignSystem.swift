@@ -5,8 +5,21 @@ import UIKit
 
 enum SageCornerRadius {
     static let compact: CGFloat = 14
-    static let regular: CGFloat = 16
-    static let prominent: CGFloat = 20
+    static let regular: CGFloat = 18
+    static let prominent: CGFloat = 24
+}
+
+enum SagePalette {
+    static let brand = Color.orange
+    static let surface = Color(uiColor: .secondarySystemGroupedBackground)
+    static let elevatedSurface = Color(uiColor: .systemBackground)
+    static let groupedBackground = Color(uiColor: .systemGroupedBackground)
+    static let separator = Color.primary.opacity(0.08)
+}
+
+enum SageComposerMetrics {
+    static let fieldVerticalPadding: CGFloat = 6
+    static let fieldMinHeight: CGFloat = 38
 }
 
 struct GlassToolbarButton: View {
@@ -16,12 +29,20 @@ struct GlassToolbarButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.headline)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.primary)
                 .frame(width: 44, height: 44)
-                .background(.regularMaterial, in: Circle())
+                .background(
+                    Circle()
+                        .fill(Color(uiColor: .secondarySystemBackground))
+                )
+                .overlay(
+                    Circle()
+                        .strokeBorder(SagePalette.separator)
+                )
         }
         .buttonStyle(.plain)
-        .shadow(color: .black.opacity(0.08), radius: 12, y: 6)
+        .contentShape(Circle())
     }
 }
 
@@ -37,7 +58,7 @@ struct GlassPrimaryButton: View {
                     Image(systemName: systemName)
                 }
                 Text(title)
-                    .fontWeight(.semibold)
+                    .font(.body.weight(.semibold))
             }
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 16)
@@ -46,8 +67,8 @@ struct GlassPrimaryButton: View {
         .buttonStyle(.plain)
         .foregroundStyle(.white)
         .background(
-            LinearGradient(colors: [Color.orange, Color.orange.opacity(0.82)], startPoint: .topLeading, endPoint: .bottomTrailing),
-            in: RoundedRectangle(cornerRadius: SageCornerRadius.regular, style: .continuous)
+            RoundedRectangle(cornerRadius: SageCornerRadius.regular, style: .continuous)
+                .fill(SagePalette.brand)
         )
     }
 }
@@ -66,24 +87,22 @@ struct GlassSegmentedFilterRow<Item: Hashable>: View {
                     } label: {
                         Text(title(item))
                             .font(.footnote.weight(.semibold))
+                            .foregroundStyle(selection == item ? .white : .primary)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
-                            .foregroundStyle(selection == item ? .white : .primary)
                             .background(
-                                Group {
-                                    if selection == item {
-                                        Capsule()
-                                            .fill(Color.orange)
-                                    } else {
-                                        Capsule()
-                                            .fill(.thinMaterial)
-                                    }
-                                }
+                                Capsule(style: .continuous)
+                                    .fill(selection == item ? SagePalette.brand : Color(uiColor: .secondarySystemGroupedBackground))
+                            )
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .strokeBorder(selection == item ? Color.clear : SagePalette.separator)
                             )
                     }
                     .buttonStyle(.plain)
                 }
             }
+            .padding(.vertical, 2)
         }
     }
 }
@@ -100,9 +119,50 @@ struct TagChipView: View {
                 .lineLimit(1)
         }
         .font(.caption.weight(.semibold))
+        .foregroundStyle(.primary)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(.thinMaterial, in: Capsule())
+        .background(
+            Capsule(style: .continuous)
+                .fill(Color(uiColor: .secondarySystemBackground))
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .strokeBorder(SagePalette.separator)
+        )
+    }
+}
+
+struct CompactTagStrip: View {
+    let tags: [TagDTO]
+    let limit: Int
+
+    init(tags: [TagDTO], limit: Int = 2) {
+        self.tags = tags
+        self.limit = limit
+    }
+
+    var body: some View {
+        let displayed = Array(tags.prefix(limit))
+        let overflow = max(0, tags.count - displayed.count)
+
+        HStack(spacing: 6) {
+            ForEach(displayed) { tag in
+                TagChipView(tag: tag)
+            }
+
+            if overflow > 0 {
+                Text("+\(overflow)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color(uiColor: .secondarySystemBackground))
+                    )
+            }
+        }
     }
 }
 
@@ -117,7 +177,11 @@ struct FloatingComposerBar<Content: View>: View {
         content
             .padding(12)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: SageCornerRadius.prominent, style: .continuous))
-            .shadow(color: .black.opacity(0.08), radius: 16, y: 12)
+            .overlay(
+                RoundedRectangle(cornerRadius: SageCornerRadius.prominent, style: .continuous)
+                    .strokeBorder(SagePalette.separator)
+            )
+            .shadow(color: .black.opacity(0.06), radius: 12, y: 6)
     }
 }
 
@@ -143,7 +207,7 @@ struct ErrorStateView: View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.largeTitle)
-                .foregroundStyle(.orange)
+                .foregroundStyle(.red)
             Text(message)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
@@ -151,7 +215,8 @@ struct ErrorStateView: View {
                 GlassPrimaryButton(title: "common.retry", systemName: "arrow.clockwise", action: retry)
             }
         }
-        .padding()
+        .padding(.vertical, 24)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -164,6 +229,7 @@ struct LoadingStateView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, 32)
     }
 }
 
@@ -208,11 +274,10 @@ struct SettingsRow<Content: View>: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            Spacer()
+            Spacer(minLength: 12)
             content
         }
-        .padding(16)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: SageCornerRadius.regular, style: .continuous))
+        .padding(.vertical, 4)
     }
 }
 
@@ -223,7 +288,7 @@ struct SectionHeaderView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(.title3.bold())
+                .font(.title3.weight(.semibold))
             if let subtitle {
                 Text(subtitle)
                     .font(.footnote)
@@ -234,12 +299,57 @@ struct SectionHeaderView: View {
     }
 }
 
+struct MetadataBadge: View {
+    let systemName: String
+    let title: String
+    let tint: Color
+
+    init(systemName: String, title: String, tint: Color = .secondary) {
+        self.systemName = systemName
+        self.title = title
+        self.tint = tint
+    }
+
+    var body: some View {
+        Label(title, systemImage: systemName)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(Color(uiColor: .secondarySystemBackground))
+            )
+    }
+}
+
+struct SurfaceCard<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: SageCornerRadius.regular, style: .continuous)
+                    .fill(SagePalette.elevatedSurface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: SageCornerRadius.regular, style: .continuous)
+                    .strokeBorder(SagePalette.separator)
+            )
+    }
+}
+
 private struct SageListChromeModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .listStyle(.plain)
+            .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
-            .background(Color.clear)
+            .background(SagePalette.groupedBackground)
     }
 }
 
@@ -250,6 +360,7 @@ extension View {
 
     func sageListRowChrome() -> some View {
         listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
     }
 }
 

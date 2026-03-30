@@ -28,6 +28,37 @@ enum TaskDueFilter: String, CaseIterable, Hashable, Identifiable {
     var id: String { rawValue }
 }
 
+enum TaskPrimaryFilter: String, CaseIterable, Hashable, Identifiable {
+    case all
+    case todo
+    case doing
+    case done
+
+    var id: String { rawValue }
+}
+
+private struct TaskAdvancedFilterState: Equatable {
+    var query = ""
+    var dueFilter: TaskDueFilter = .all
+    var selectedTagIDs: Set<String> = []
+
+    var hasActiveFilters: Bool {
+        !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || dueFilter != .all || !selectedTagIDs.isEmpty
+    }
+}
+
+private struct TaskHomeSection: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let tasks: [TaskDTO]
+}
+
+private enum TaskQuickFocus: String, Hashable {
+    case today
+    case planned
+    case overdue
+}
+
 @MainActor
 @Observable
 final class TasksViewModel {
@@ -45,13 +76,7 @@ final class TasksViewModel {
         defer { isLoading = false }
 
         do {
-            let queryItems: [URLQueryItem] = [
-                URLQueryItem(name: "status", value: statusFilter.rawValue),
-                URLQueryItem(name: "due", value: viewMode == .list ? dueFilter.rawValue : nil)
-            ].compactMap { $0.value == nil ? nil : $0 }
-
-            let tasksPath = makeAPIPath("/api/mobile/v1/tasks", queryItems: queryItems)
-            async let tasksRequest: [TaskDTO] = api.send(path: tasksPath)
+            async let tasksRequest: [TaskDTO] = api.send(path: "/api/mobile/v1/tasks")
             async let tagsRequest: [TagDTO] = api.send(path: "/api/mobile/v1/tags")
             tasks = try await tasksRequest
             tags = try await tagsRequest
@@ -161,20 +186,84 @@ struct TasksView: View {
     @Environment(AppEnvironment.self) private var environment
     @Environment(AppSettingsStore.self) private var settings
     @State private var viewModel = TasksViewModel()
-    @State private var expandedTaskIDs: Set<String> = []
+    @State private var primaryFilter: TaskPrimaryFilter = .all
+    @State private var advancedFilters = TaskAdvancedFilterState()
     @State private var activeSheet: TaskSheetDestination?
+    @State private var placementContext: TimelinePlacementContext?
+    @State private var showingFilters = false
+    @State private var showingCompletedSection = false
+    @State private var quickFocus: TaskQuickFocus?
 
     var body: some View {
         List {
             Section {
-                GlassSegmentedFilterRow(items: TaskViewMode.allCases, title: taskViewModeTitle, selection: $viewModel.viewMode)
-                    .listRowBackground(Color.clear)
-                GlassSegmentedFilterRow(items: TaskStatusFilter.allCases, title: taskStatusTitle, selection: $viewModel.statusFilter)
-                    .listRowBackground(Color.clear)
-                if viewModel.viewMode == .list {
-                    GlassSegmentedFilterRow(items: TaskDueFilter.allCases, title: taskDueTitle, selection: $viewModel.dueFilter)
-                        .listRowBackground(Color.clear)
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 8) {
+                        summaryStatChip(
+                            title: "\(todayCount) \(localizedTasksText(chinese: "今天", english: "Today"))",
+                            isActive: quickFocus == .today
+                        ) {
+                            quickFocus = quickFocus == .today ? nil : .today
+                        }
+
+                        summaryStatChip(
+                            title: "\(plannedCount) \(localizedTasksText(chinese: "已规划", english: "Planned"))",
+                            isActive: quickFocus == .planned,
+                            tint: .blue
+                        ) {
+                            quickFocus = quickFocus == .planned ? nil : .planned
+                        }
+
+                        summaryStatChip(
+                            title: "\(overdueCount) \(localizedTasksText(chinese: "逾期", english: "Overdue"))",
+                            isActive: quickFocus == .overdue,
+                            tint: overdueCount > 0 ? .red : .secondary
+                        ) {
+                            quickFocus = quickFocus == .overdue ? nil : .overdue
+                        }
+
+                        Spacer(minLength: 8)
+
+                        Button {
+                            showingFilters = true
+                        } label: {
+                            Image(systemName: advancedFilters.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                                .font(.body.weight(.semibold))
+                        }
+                        .buttonStyle(.plain)
+                        .frame(width: 32, height: 32)
+                        .accessibilityLabel(Text(localizedAppText(for: settings.language, chinese: "筛选任务", english: "Filter tasks")))
+                    }
+
+                    Picker("", selection: $primaryFilter) {
+                        ForEach(TaskPrimaryFilter.allCases, id: \.self) { filter in
+                            Text(primaryFilterTitle(filter)).tag(filter)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(height: 30)
+
+                    if advancedFilters.hasActiveFilters {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 6) {
+                                ForEach(activeFilterChipTitles, id: \.self) { title in
+                                    Text(title)
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            Capsule(style: .continuous)
+                                                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                                        )
+                                }
+                            }
+                        }
+                    }
                 }
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
             }
 
             if let errorMessage = viewModel.errorMessage {
@@ -191,57 +280,38 @@ struct TasksView: View {
                 EmptyStateView(systemName: "checklist", title: "tasks.empty.title", message: "tasks.empty.message")
                     .listRowBackground(Color.clear)
             } else {
-                ForEach(groupedTasks, id: \.title) { group in
-                    Section(group.title) {
-                        ForEach(group.tasks) { task in
-                            ExpandableTaskCard(
-                                task: task,
-                                language: environment.settings.language,
-                                isExpanded: expandedTaskIDs.contains(task.id),
-                                onToggleExpand: {
-                                    toggleExpansion(task.id)
-                                },
-                                onEdit: {
-                                    activeSheet = .detail(task)
-                                },
-                                onCycle: {
-                                    Task { @MainActor in
-                                        await viewModel.cycle(task, using: environment.apiClient, notifications: environment.notificationScheduler)
-                                    }
-                                },
-                                onCreateSubtask: { title in
-                                    Task { @MainActor in
-                                        await viewModel.createSubtask(taskID: task.id, title: title, using: environment.apiClient)
-                                    }
-                                },
-                                onRenameSubtask: { subtask, title in
-                                    Task { @MainActor in
-                                        await viewModel.renameSubtask(taskID: task.id, subtask: subtask, title: title, using: environment.apiClient)
-                                    }
-                                },
-                                onToggleSubtask: { subtask in
-                                    Task { @MainActor in
-                                        await viewModel.toggleSubtask(taskID: task.id, subtask: subtask, using: environment.apiClient)
-                                    }
-                                },
-                                onDeleteSubtask: { subtask in
-                                    Task { @MainActor in
-                                        await viewModel.deleteSubtask(taskID: task.id, subtaskID: subtask.id, using: environment.apiClient)
-                                    }
+                ForEach(taskSections) { section in
+                    Section {
+                        ForEach(section.tasks) { task in
+                            taskRow(task)
+                        }
+                    } header: {
+                        sectionHeader(section.title)
+                    }
+                }
+
+                if primaryFilter != .done, !completedTasks.isEmpty {
+                    Section {
+                        DisclosureGroup(
+                            isExpanded: $showingCompletedSection,
+                            content: {
+                                ForEach(completedTasks) { task in
+                                    taskRow(task)
                                 }
-                            )
-                            .sageListRowChrome()
-                            .swipeActions {
-                                Button(role: .destructive) {
-                                    Task { @MainActor in
-                                        expandedTaskIDs.remove(task.id)
-                                        await viewModel.delete(task, using: environment.apiClient, notifications: environment.notificationScheduler)
-                                    }
-                                } label: {
-                                    Label("common.delete", systemImage: "trash")
+                            },
+                            label: {
+                                HStack {
+                                    Text(localizedTasksText(chinese: "已完成", english: "Done"))
+                                        .font(.headline)
+                                    Spacer()
+                                    Text("\(completedTasks.count)")
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundStyle(.secondary)
                                 }
                             }
-                        }
+                        )
+                    } header: {
+                        sectionHeader(localizedTasksText(chinese: "已完成", english: "Done"))
                     }
                 }
             }
@@ -253,27 +323,12 @@ struct TasksView: View {
                 Button {
                     activeSheet = .create
                 } label: {
-                    Label("tasks.new", systemImage: "plus")
+                    Image(systemName: "plus")
                 }
             }
         }
         .task {
             await reload()
-        }
-        .onChange(of: viewModel.viewMode) { _, _ in
-            Task { @MainActor in
-                await reload()
-            }
-        }
-        .onChange(of: viewModel.statusFilter) { _, _ in
-            Task { @MainActor in
-                await reload()
-            }
-        }
-        .onChange(of: viewModel.dueFilter) { _, _ in
-            Task { @MainActor in
-                await reload()
-            }
         }
         .sheet(item: $activeSheet) { destination in
             switch destination {
@@ -282,10 +337,20 @@ struct TasksView: View {
                     viewModel.replace(created)
                 }
             case let .detail(task):
-                TaskEditorSheet(task: task, tags: viewModel.tags) { updated in
+                TaskEditorSheet(task: task, tags: viewModel.tags, startsInEditMode: true) { updated in
                     viewModel.replace(updated)
                 }
             }
+        }
+        .sheet(item: $placementContext) { context in
+            TimelinePlacementSheet(context: context) { _ in
+                Task { @MainActor in
+                    await reload()
+                }
+            }
+        }
+        .sheet(isPresented: $showingFilters) {
+            TaskAdvancedFilterSheet(filters: $advancedFilters, availableTags: viewModel.tags, language: settings.language)
         }
         .refreshable {
             await reload()
@@ -294,78 +359,180 @@ struct TasksView: View {
 
     private var filteredTasks: [TaskDTO] {
         viewModel.tasks
+            .filter { task in
+                task.status != .archived
+            }
+            .filter(matchesPrimaryFilter)
+            .filter(matchesAdvancedFilter)
+            .filter(matchesQuickFocus)
+            .sorted(by: taskComesFirst)
     }
 
-    private var sortedTasks: [TaskDTO] {
-        filteredTasks.sorted(by: taskComesFirst)
+    private var activeTasks: [TaskDTO] {
+        filteredTasks.filter { $0.status != .done }
     }
 
-    private var groupedTasks: [TaskGroup] {
-        switch viewModel.viewMode {
-        case .list:
-            return [TaskGroup(title: localizedTasksText(chinese: "全部任务", english: "All Tasks"), tasks: sortedTasks)]
-        case .week:
-            return Dictionary(grouping: sortedTasks) { task in
-                weekSectionTitle(for: taskSortDate(task))
-            }
-            .map { TaskGroup(title: $0.key, tasks: $0.value.sorted(by: taskComesFirst)) }
-            .sorted(by: groupComesFirst)
-        case .month:
-            return Dictionary(grouping: sortedTasks) { task in
-                monthSectionTitle(for: taskSortDate(task))
-            }
-            .map { TaskGroup(title: $0.key, tasks: $0.value.sorted(by: taskComesFirst)) }
-            .sorted(by: groupComesFirst)
-        }
+    private var completedTasks: [TaskDTO] {
+        filteredTasks.filter { $0.status == .done }
     }
 
     private func reload() async {
         await viewModel.load(using: environment.apiClient)
     }
 
-    private func toggleExpansion(_ taskID: String) {
-        if expandedTaskIDs.contains(taskID) {
-            expandedTaskIDs.remove(taskID)
-        } else {
-            expandedTaskIDs.insert(taskID)
+    private var taskSections: [TaskHomeSection] {
+        if primaryFilter == .done {
+            return completedTasks.isEmpty
+                ? []
+                : [TaskHomeSection(id: "done", title: localizedTasksText(chinese: "已完成", english: "Done"), tasks: completedTasks)]
         }
+
+        return [
+            TaskHomeSection(id: "overdue", title: localizedTasksText(chinese: "已逾期", english: "Overdue"), tasks: activeTasks.filter(isOverdue)),
+            TaskHomeSection(id: "today", title: localizedTasksText(chinese: "今天", english: "Today"), tasks: activeTasks.filter(isToday)),
+            TaskHomeSection(id: "thisWeek", title: localizedTasksText(chinese: "本周", english: "This Week"), tasks: activeTasks.filter(isThisWeek)),
+            TaskHomeSection(id: "later", title: localizedTasksText(chinese: "之后", english: "Later"), tasks: activeTasks.filter(isLater)),
+            TaskHomeSection(id: "noDue", title: localizedTasksText(chinese: "无截止日期", english: "No Due"), tasks: activeTasks.filter(hasNoDueDate))
+        ]
+        .filter { !$0.tasks.isEmpty }
     }
 
-    private func taskViewModeTitle(_ mode: TaskViewMode) -> LocalizedStringKey {
-        switch mode {
-        case .list: return "tasks.view.list"
-        case .week: return "tasks.view.week"
-        case .month: return "tasks.view.month"
-        }
+    private var overdueCount: Int {
+        viewModel.tasks.filter { $0.status != .done && isOverdue($0) }.count
     }
 
-    private func taskStatusTitle(_ filter: TaskStatusFilter) -> LocalizedStringKey {
+    private var todayCount: Int {
+        viewModel.tasks.filter { $0.status != .done && isToday($0) }.count
+    }
+
+    private var plannedCount: Int {
+        viewModel.tasks.filter { scheduledMinutes(for: $0) > 0 }.count
+    }
+
+    private var activeFilterChipTitles: [String] {
+        var fragments: [String] = []
+        if let quickFocus {
+            switch quickFocus {
+            case .today:
+                fragments.append(localizedTasksText(chinese: "聚焦：今天", english: "Focus: Today"))
+            case .planned:
+                fragments.append(localizedTasksText(chinese: "聚焦：已规划", english: "Focus: Planned"))
+            case .overdue:
+                fragments.append(localizedTasksText(chinese: "聚焦：逾期", english: "Focus: Overdue"))
+            }
+        }
+        let trimmedQuery = advancedFilters.query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedQuery.isEmpty {
+            fragments.append(localizedTasksText(chinese: "搜索：\(trimmedQuery)", english: "Search: \(trimmedQuery)"))
+        }
+        if advancedFilters.dueFilter != .all {
+            fragments.append(localizedTasksText(chinese: "截止：\(taskDueFilterLabel(advancedFilters.dueFilter))", english: "Due: \(taskDueFilterLabel(advancedFilters.dueFilter))"))
+        }
+        if !advancedFilters.selectedTagIDs.isEmpty {
+            fragments.append(localizedTasksText(chinese: "标签 \(advancedFilters.selectedTagIDs.count) 个", english: "\(advancedFilters.selectedTagIDs.count) tag filters"))
+        }
+        return fragments
+    }
+
+    private func primaryFilterTitle(_ filter: TaskPrimaryFilter) -> String {
         switch filter {
-        case .all: return "tasks.filter.all"
-        case .todo: return "tasks.filter.todo"
-        case .doing: return "tasks.filter.doing"
-        case .done: return "tasks.filter.done"
+        case .all:
+            return localizedTasksText(chinese: "全部", english: "All")
+        case .todo:
+            return localizedTasksText(chinese: "待办", english: "Todo")
+        case .doing:
+            return localizedTasksText(chinese: "进行中", english: "Doing")
+        case .done:
+            return localizedTasksText(chinese: "已完成", english: "Done")
         }
     }
 
-    private func taskDueTitle(_ filter: TaskDueFilter) -> LocalizedStringKey {
+    private func taskDueFilterLabel(_ filter: TaskDueFilter) -> String {
         switch filter {
-        case .all: return "tasks.filter.all"
-        case .today: return "tasks.due.today"
-        case .tomorrow: return "tasks.due.tomorrow"
-        case .thisWeek: return "tasks.due.thisWeek"
-        case .thisMonth: return "tasks.due.thisMonth"
+        case .all:
+            return localizedTasksText(chinese: "全部", english: "All")
+        case .today:
+            return localizedTasksText(chinese: "今天", english: "Today")
+        case .tomorrow:
+            return localizedTasksText(chinese: "明天", english: "Tomorrow")
+        case .thisWeek:
+            return localizedTasksText(chinese: "本周", english: "This Week")
+        case .thisMonth:
+            return localizedTasksText(chinese: "本月", english: "This Month")
         }
     }
 
-    private func weekSectionTitle(for date: Date?) -> String {
-        guard let date else { return localizedTasksText(chinese: "未安排", english: "Unscheduled") }
-        return date.formatted(.dateTime.weekday(.wide))
+    @ViewBuilder
+    private func taskRow(_ task: TaskDTO) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            Button {
+                Task { @MainActor in
+                    await viewModel.cycle(task, using: environment.apiClient, notifications: environment.notificationScheduler)
+                }
+            } label: {
+                Image(systemName: statusSymbol(for: task.status))
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(statusColor(for: task.status))
+                    .frame(width: 30, height: 30)
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink {
+                TaskDetailView(task: task, availableTags: viewModel.tags) { updated in
+                    viewModel.replace(updated)
+                } onDelete: { deletedTaskID in
+                    viewModel.tasks.removeAll { $0.id == deletedTaskID }
+                }
+            } label: {
+                TaskListRowContent(
+                    task: task,
+                    language: settings.language,
+                    scheduledMinutes: scheduledMinutes(for: task)
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 2)
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+            Button {
+                placementContext = TimelinePlacementContext(
+                    availableTasks: [task],
+                    preselectedTaskID: task.id,
+                    preselectedDate: Date.fromISO8601(task.dueAt) ?? .now,
+                    preferredMode: .timed,
+                    lockedSubTaskId: nil,
+                    lockTaskSelection: true,
+                    lockDeploymentTargetSelection: false
+                )
+            } label: {
+                Label(localizedTasksText(chinese: "规划", english: "Schedule"), systemImage: "calendar.badge.plus")
+            }
+            .tint(.blue)
+
+            Button {
+                activeSheet = .detail(task)
+            } label: {
+                Label("common.edit", systemImage: "square.and.pencil")
+            }
+            .tint(SagePalette.brand)
+        }
+        .swipeActions(edge: .trailing) {
+            Button(role: .destructive) {
+                Task { @MainActor in
+                    await viewModel.delete(task, using: environment.apiClient, notifications: environment.notificationScheduler)
+                }
+            } label: {
+                Label("common.delete", systemImage: "trash")
+            }
+        }
     }
 
-    private func monthSectionTitle(for date: Date?) -> String {
-        guard let date else { return localizedTasksText(chinese: "未安排", english: "Unscheduled") }
-        return date.formatted(.dateTime.month(.wide))
+    @ViewBuilder
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .textCase(nil)
     }
 
     private func taskSortDate(_ task: TaskDTO) -> Date? {
@@ -381,33 +548,187 @@ struct TasksView: View {
             if lhsDate != rhsDate {
                 return lhsDate < rhsDate
             }
-            return lhs.createdAt < rhs.createdAt
         case (_?, nil):
             return true
         case (nil, _?):
             return false
         case (nil, nil):
-            return lhs.createdAt < rhs.createdAt
+            break
+        }
+
+        if lhs.priority != rhs.priority {
+            return lhs.priority.sortRank > rhs.priority.sortRank
+        }
+
+        return lhs.createdAt < rhs.createdAt
+    }
+
+    private func scheduledMinutes(for task: TaskDTO) -> Int {
+        (task.timeBlocks ?? [])
+            .filter { !$0.isAllDay }
+            .compactMap { block in
+                guard let start = Date.fromISO8601(block.startAt),
+                      let end = Date.fromISO8601(block.endAt) else {
+                    return nil
+                }
+                return max(0, Int(end.timeIntervalSince(start) / 60))
+            }
+            .reduce(0, +)
+    }
+
+    private func matchesPrimaryFilter(_ task: TaskDTO) -> Bool {
+        switch primaryFilter {
+        case .all:
+            return true
+        case .todo:
+            return task.status == .todo || task.status == .inbox
+        case .doing:
+            return task.status == .doing
+        case .done:
+            return task.status == .done
         }
     }
 
-    private func groupComesFirst(_ lhs: TaskGroup, _ rhs: TaskGroup) -> Bool {
-        let lhsDate = lhs.tasks.compactMap(taskSortDate).min()
-        let rhsDate = rhs.tasks.compactMap(taskSortDate).min()
-
-        switch (lhsDate, rhsDate) {
-        case let (lhsDate?, rhsDate?):
-            if lhsDate != rhsDate {
-                return lhsDate < rhsDate
+    private func matchesAdvancedFilter(_ task: TaskDTO) -> Bool {
+        let trimmedQuery = advancedFilters.query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedQuery.isEmpty {
+            let haystack = [task.title, task.description ?? ""]
+                .joined(separator: " ")
+                .localizedLowercase
+            if !haystack.contains(trimmedQuery.localizedLowercase) {
+                return false
             }
-            return lhs.title < rhs.title
-        case (_?, nil):
-            return true
-        case (nil, _?):
-            return false
-        case (nil, nil):
-            return lhs.title < rhs.title
         }
+
+        if advancedFilters.dueFilter != .all, !matchesDueFilter(task, filter: advancedFilters.dueFilter) {
+            return false
+        }
+
+        if !advancedFilters.selectedTagIDs.isEmpty {
+            let taskTagIDs = Set(task.tags.map(\.id))
+            if taskTagIDs.isDisjoint(with: advancedFilters.selectedTagIDs) {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    private func matchesQuickFocus(_ task: TaskDTO) -> Bool {
+        guard let quickFocus else { return true }
+
+        switch quickFocus {
+        case .today:
+            return isToday(task)
+        case .planned:
+            return scheduledMinutes(for: task) > 0
+        case .overdue:
+            return isOverdue(task)
+        }
+    }
+
+    private func matchesDueFilter(_ task: TaskDTO, filter: TaskDueFilter) -> Bool {
+        guard let dueDate = taskSortDate(task) else { return false }
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let dueDay = calendar.startOfDay(for: dueDate)
+
+        switch filter {
+        case .all:
+            return true
+        case .today:
+            return calendar.isDate(dueDay, inSameDayAs: today)
+        case .tomorrow:
+            guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: today) else { return false }
+            return calendar.isDate(dueDay, inSameDayAs: tomorrow)
+        case .thisWeek:
+            guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: today) else { return false }
+            return dueDay >= weekInterval.start && dueDay < weekInterval.end
+        case .thisMonth:
+            guard let monthInterval = calendar.dateInterval(of: .month, for: today) else { return false }
+            return dueDay >= monthInterval.start && dueDay < monthInterval.end
+        }
+    }
+
+    private func isOverdue(_ task: TaskDTO) -> Bool {
+        guard let dueDate = taskSortDate(task) else { return false }
+        return Calendar.current.startOfDay(for: dueDate) < Calendar.current.startOfDay(for: Date())
+    }
+
+    private func isToday(_ task: TaskDTO) -> Bool {
+        guard let dueDate = taskSortDate(task) else { return false }
+        return Calendar.current.isDate(dueDate, inSameDayAs: Date())
+    }
+
+    private func isThisWeek(_ task: TaskDTO) -> Bool {
+        guard let dueDate = taskSortDate(task) else { return false }
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: today) else { return false }
+        let nextWeekStart = weekInterval.end
+        let dueDay = calendar.startOfDay(for: dueDate)
+        return dueDay > today && dueDay < nextWeekStart
+    }
+
+    private func isLater(_ task: TaskDTO) -> Bool {
+        guard let dueDate = taskSortDate(task) else { return false }
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: today) else {
+            return false
+        }
+
+        return calendar.startOfDay(for: dueDate) >= weekInterval.end
+    }
+
+    private func hasNoDueDate(_ task: TaskDTO) -> Bool {
+        task.dueAt == nil
+    }
+
+    private func statusSymbol(for status: TaskStatus) -> String {
+        switch status {
+        case .todo, .inbox:
+            return "circle"
+        case .doing:
+            return "circle.dashed"
+        case .done:
+            return "checkmark.circle.fill"
+        case .archived:
+            return "archivebox"
+        }
+    }
+
+    private func statusColor(for status: TaskStatus) -> Color {
+        switch status {
+        case .done:
+            return .green
+        case .doing:
+            return SagePalette.brand
+        default:
+            return .secondary
+        }
+    }
+
+    @ViewBuilder
+    private func summaryStatChip(title: String, isActive: Bool, tint: Color = SagePalette.brand, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(isActive ? tint : .primary)
+                .lineLimit(1)
+                .padding(.horizontal, 10)
+                .frame(height: 32)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(isActive ? tint.opacity(0.12) : Color(uiColor: .secondarySystemGroupedBackground))
+                )
+                .overlay(
+                    Capsule(style: .continuous)
+                        .strokeBorder(isActive ? tint.opacity(0.25) : SagePalette.separator)
+                )
+        }
+        .buttonStyle(.plain)
     }
 
     private func localizedTasksText(chinese: String, english: String) -> String {
@@ -426,6 +747,827 @@ private enum TaskSheetDestination: Identifiable {
         case let .detail(task):
             return task.id
         }
+    }
+}
+
+@MainActor
+struct TaskListRowContent: View {
+    let task: TaskDTO
+    let language: AppLanguage
+    let scheduledMinutes: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(task.title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .strikethrough(task.status == .done)
+
+                Spacer(minLength: 8)
+
+                if let priorityLabel {
+                    Text(priorityLabel)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(priorityTint)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(priorityTint.opacity(0.12))
+                        )
+                }
+            }
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    rowMetadata
+                    CompactTaskRowTagStrip(tags: task.tags, limit: 2)
+                }
+                HStack(spacing: 10) {
+                    rowMetadata
+                    CompactTaskRowTagStrip(tags: task.tags, limit: 1)
+                }
+                rowMetadata
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 6)
+    }
+
+    private var priorityLabel: String? {
+        switch task.priority {
+        case .low:
+            return nil
+        case .medium:
+            return nil
+        case .high:
+            return localizedAppText(for: language, chinese: "高", english: "High")
+        case .urgent:
+            return localizedAppText(for: language, chinese: "急", english: "Urgent")
+        }
+    }
+
+    private var priorityTint: Color {
+        switch task.priority {
+        case .urgent:
+            return .red
+        case .high:
+            return SagePalette.brand
+        case .medium:
+            return .blue
+        case .low:
+            return .secondary
+        }
+    }
+
+    @ViewBuilder
+    private var rowMetadata: some View {
+        HStack(spacing: 10) {
+            if let dueAt = task.dueAt {
+                compactMetaLabel(systemName: "calendar", title: formattedDue(dueAt), tint: dueTint)
+            }
+
+            if let estimateMinutes = task.estimateMinutes {
+                compactMetaLabel(
+                    systemName: "clock",
+                    title: "\(scheduledMinutes)/\(estimateMinutes)m",
+                    tint: scheduledMinutes >= estimateMinutes && estimateMinutes > 0 ? .green : .secondary
+                )
+            } else if scheduledMinutes > 0 {
+                compactMetaLabel(systemName: "calendar.badge.clock", title: "\(scheduledMinutes)m", tint: .blue)
+            }
+        }
+        .font(.system(size: 12, weight: .medium))
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+    }
+
+    @ViewBuilder
+    private func compactMetaLabel(systemName: String, title: String, tint: Color) -> some View {
+        Label(title, systemImage: systemName)
+            .labelStyle(.titleAndIcon)
+            .foregroundStyle(tint)
+    }
+
+    private var dueTint: Color {
+        guard let dueAt = task.dueAt, let date = Date.fromISO8601(dueAt) else { return .secondary }
+        if Calendar.current.startOfDay(for: date) < Calendar.current.startOfDay(for: Date()) {
+            return .red
+        }
+        if Calendar.current.isDateInToday(date) {
+            return SagePalette.brand
+        }
+        return .secondary
+    }
+
+    private func formattedDue(_ string: String) -> String {
+        guard let date = Date.fromISO8601(string) else { return string }
+        if Calendar.current.isDateInToday(date) {
+            return localizedAppText(for: language, chinese: "今天", english: "Today")
+        }
+        if Calendar.current.isDateInTomorrow(date) {
+            return localizedAppText(for: language, chinese: "明天", english: "Tomorrow")
+        }
+        return date.formatted(date: .abbreviated, time: .omitted)
+    }
+}
+
+private struct CompactTaskRowTagStrip: View {
+    let tags: [TagDTO]
+    let limit: Int
+
+    var body: some View {
+        let displayed = Array(tags.prefix(limit))
+        let overflow = max(0, tags.count - displayed.count)
+
+        HStack(spacing: 6) {
+            ForEach(displayed) { tag in
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(Color(hex: tag.color))
+                        .frame(width: 6, height: 6)
+                    Text(tag.name)
+                        .lineLimit(1)
+                }
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                )
+            }
+
+            if overflow > 0 {
+                Text("+\(overflow)")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                    )
+            }
+        }
+        .lineLimit(1)
+    }
+}
+
+@MainActor
+private struct TaskAdvancedFilterSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @Binding var filters: TaskAdvancedFilterState
+    let availableTags: [TagDTO]
+    let language: AppLanguage
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(localizedAppText(for: language, chinese: "搜索", english: "Search")) {
+                    TextField(
+                        localizedAppText(for: language, chinese: "按标题或描述搜索", english: "Search title or description"),
+                        text: $filters.query
+                    )
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                }
+
+                Section(localizedAppText(for: language, chinese: "截止时间", english: "Due")) {
+                    Picker(
+                        localizedAppText(for: language, chinese: "范围", english: "Scope"),
+                        selection: $filters.dueFilter
+                    ) {
+                        ForEach(TaskDueFilter.allCases, id: \.self) { filter in
+                            Text(dueFilterTitle(filter)).tag(filter)
+                        }
+                    }
+                }
+
+                if !availableTags.isEmpty {
+                    Section(localizedAppText(for: language, chinese: "标签", english: "Tags")) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 10)], alignment: .leading, spacing: 10) {
+                            ForEach(availableTags) { tag in
+                                Button {
+                                    if filters.selectedTagIDs.contains(tag.id) {
+                                        filters.selectedTagIDs.remove(tag.id)
+                                    } else {
+                                        filters.selectedTagIDs.insert(tag.id)
+                                    }
+                                } label: {
+                                    TagChipView(tag: tag)
+                                        .opacity(filters.selectedTagIDs.contains(tag.id) ? 1.0 : 0.42)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            .navigationTitle(localizedAppText(for: language, chinese: "任务筛选", english: "Task Filters"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(localizedAppText(for: language, chinese: "重置", english: "Reset")) {
+                        filters = TaskAdvancedFilterState()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("common.done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private func dueFilterTitle(_ filter: TaskDueFilter) -> String {
+        switch filter {
+        case .all:
+            return localizedAppText(for: language, chinese: "全部", english: "All")
+        case .today:
+            return localizedAppText(for: language, chinese: "今天", english: "Today")
+        case .tomorrow:
+            return localizedAppText(for: language, chinese: "明天", english: "Tomorrow")
+        case .thisWeek:
+            return localizedAppText(for: language, chinese: "本周", english: "This Week")
+        case .thisMonth:
+            return localizedAppText(for: language, chinese: "本月", english: "This Month")
+        }
+    }
+}
+
+@MainActor
+struct TaskDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(AppEnvironment.self) private var environment
+    @Environment(AppSettingsStore.self) private var settings
+
+    let availableTags: [TagDTO]
+    let onSave: (TaskDTO) -> Void
+    let onDelete: (String) -> Void
+
+    @State private var task: TaskDTO
+    @State private var newSubtaskTitle = ""
+    @State private var errorMessage: String?
+    @State private var isLoading = false
+    @State private var showingEditor = false
+    @State private var placementContext: TimelinePlacementContext?
+    @State private var editingBlock: TimeBlockDTO?
+    @State private var confirmingDelete = false
+
+    init(task: TaskDTO, availableTags: [TagDTO], onSave: @escaping (TaskDTO) -> Void, onDelete: @escaping (String) -> Void) {
+        self.availableTags = availableTags
+        self.onSave = onSave
+        self.onDelete = onDelete
+        _task = State(initialValue: task)
+    }
+
+    var body: some View {
+        List {
+            Section {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(task.title)
+                        .font(.title3.weight(.semibold))
+                        .strikethrough(task.status == .done)
+
+                    if let description = task.description, !description.isEmpty {
+                        Text(description)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    TaskMetadataListView(items: metadataItems)
+
+                    Button {
+                        placementContext = TimelinePlacementContext(
+                            availableTasks: [task],
+                            preselectedTaskID: task.id,
+                            preselectedDate: Date.fromISO8601(task.dueAt) ?? .now,
+                            preferredMode: .timed,
+                            lockedSubTaskId: nil,
+                            lockTaskSelection: true,
+                            lockDeploymentTargetSelection: false
+                        )
+                    } label: {
+                        Label(localizedAppText(for: settings.language, chinese: "在规划页安排", english: "Plan in Timeline"), systemImage: "calendar.badge.plus")
+                            .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.regular)
+                    .tint(SagePalette.brand)
+                }
+                .padding(.vertical, 4)
+            }
+
+            if !task.tags.isEmpty {
+                Section(localizedAppText(for: settings.language, chinese: "标签", english: "Tags")) {
+                    CompactTagStrip(tags: task.tags, limit: 99)
+                        .padding(.vertical, 4)
+                }
+            }
+
+            Section(localizedAppText(for: settings.language, chinese: "子任务", english: "Subtasks")) {
+                if task.subtasks.isEmpty {
+                    Text(localizedAppText(for: settings.language, chinese: "还没有子任务。", english: "No subtasks yet."))
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(sortedSubtasks) { subtask in
+                        InlineSubtaskRow(
+                            subtask: subtask,
+                            language: settings.language,
+                            onCommitTitle: { title in
+                                Task { @MainActor in
+                                    await renameSubtask(subtask, title: title)
+                                }
+                            },
+                            onToggle: {
+                                Task { @MainActor in
+                                    await toggleSubtask(subtask)
+                                }
+                            },
+                            onDelete: {
+                                Task { @MainActor in
+                                    await deleteSubtask(subtask)
+                                }
+                            }
+                        )
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundStyle(SagePalette.brand)
+
+                    TextField(
+                        localizedAppText(for: settings.language, chinese: "添加子任务", english: "Add subtask"),
+                        text: $newSubtaskTitle
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit(addSubtask)
+
+                    Button("common.add") {
+                        addSubtask()
+                    }
+                    .disabled(newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+
+            Section("timeline.title") {
+                if sortedBlocks.isEmpty {
+                    Text(localizedAppText(for: settings.language, chinese: "还没有日程或全天部署。", english: "No schedule blocks yet."))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(sortedBlocks, id: \.id) { block in
+                        Button {
+                            editingBlock = block
+                        } label: {
+                            TaskTimeBlockRow(title: blockSubtitle(block), subtitle: blockTitle(block))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            if let errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+        .sageListChrome()
+        .navigationTitle(task.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("common.edit") {
+                    showingEditor = true
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button(role: .destructive) {
+                        confirmingDelete = true
+                    } label: {
+                        Label("common.delete", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
+        .task {
+            await reload()
+        }
+        .refreshable {
+            await reload()
+        }
+        .sheet(isPresented: $showingEditor) {
+            TaskEditorSheet(task: task, tags: availableTags, startsInEditMode: true) { updated in
+                task = updated
+                onSave(updated)
+            }
+        }
+        .sheet(item: $placementContext) { context in
+            TimelinePlacementSheet(context: context) { _ in
+                Task { @MainActor in
+                    await reload()
+                }
+            }
+        }
+        .sheet(item: $editingBlock) { block in
+            TimeBlockEditorSheet(task: task, existing: block) { _ in
+                Task { @MainActor in
+                    await reload()
+                }
+            } onDelete: {
+                Task { @MainActor in
+                    await reload()
+                }
+            }
+        }
+        .alert(localizedAppText(for: settings.language, chinese: "删除任务？", english: "Delete task?"), isPresented: $confirmingDelete) {
+            Button("common.cancel", role: .cancel) {}
+            Button("common.delete", role: .destructive) {
+                Task { @MainActor in
+                    await deleteTask()
+                }
+            }
+        } message: {
+            Text(localizedAppText(for: settings.language, chinese: "这个操作无法撤销。", english: "This action cannot be undone."))
+        }
+        .overlay {
+            if isLoading {
+                ProgressView()
+                    .padding()
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+        }
+    }
+
+    private var metadataItems: [TaskMetadataItem] {
+        var items: [TaskMetadataItem] = [
+            TaskMetadataItem(
+                id: "status",
+                label: localizedAppText(for: settings.language, chinese: "状态", english: "Status"),
+                value: statusText(task.status),
+                systemName: statusSymbol(for: task.status),
+                tint: statusColor(for: task.status)
+            ),
+            TaskMetadataItem(
+                id: "priority",
+                label: localizedAppText(for: settings.language, chinese: "优先级", english: "Priority"),
+                value: priorityText(task.priority),
+                systemName: "flag",
+                tint: priorityColor(task.priority)
+            )
+        ]
+
+        if let dueAt = task.dueAt {
+            items.append(
+                TaskMetadataItem(
+                    id: "due",
+                    label: localizedAppText(for: settings.language, chinese: "截止时间", english: "Due"),
+                    value: formattedDateTime(dueAt),
+                    systemName: "calendar",
+                    tint: .secondary
+                )
+            )
+        }
+
+        if let estimateMinutes = task.estimateMinutes {
+            items.append(
+                TaskMetadataItem(
+                    id: "planned",
+                    label: localizedAppText(for: settings.language, chinese: "规划进度", english: "Planned"),
+                    value: "\(scheduledMinutes)/\(estimateMinutes)m",
+                    systemName: "clock",
+                    tint: scheduledMinutes >= estimateMinutes ? .green : .secondary
+                )
+            )
+        } else if scheduledMinutes > 0 {
+            items.append(
+                TaskMetadataItem(
+                    id: "scheduled",
+                    label: localizedAppText(for: settings.language, chinese: "已规划", english: "Scheduled"),
+                    value: "\(scheduledMinutes)m",
+                    systemName: "calendar.badge.clock",
+                    tint: .blue
+                )
+            )
+        }
+
+        return items
+    }
+
+    private var scheduledMinutes: Int {
+        sortedBlocks
+            .filter { !$0.isAllDay }
+            .compactMap { block in
+                guard let start = Date.fromISO8601(block.startAt),
+                      let end = Date.fromISO8601(block.endAt) else {
+                    return nil
+                }
+                return max(0, Int(end.timeIntervalSince(start) / 60))
+            }
+            .reduce(0, +)
+    }
+
+    private var sortedSubtasks: [SubTaskDTO] {
+        task.subtasks.sorted { lhs, rhs in
+            if lhs.sortOrder != rhs.sortOrder {
+                return lhs.sortOrder < rhs.sortOrder
+            }
+            return lhs.createdAt < rhs.createdAt
+        }
+    }
+
+    private var sortedBlocks: [TimeBlockDTO] {
+        (task.timeBlocks ?? []).sorted { lhs, rhs in
+            let lhsDate = Date.fromISO8601(lhs.startAt)
+            let rhsDate = Date.fromISO8601(rhs.startAt)
+
+            switch (lhsDate, rhsDate) {
+            case let (lhsDate?, rhsDate?):
+                if lhsDate != rhsDate {
+                    return lhsDate < rhsDate
+                }
+                return lhs.createdAt < rhs.createdAt
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            case (nil, nil):
+                return lhs.createdAt < rhs.createdAt
+            }
+        }
+    }
+
+    private func reload() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let refreshed: TaskDTO = try await environment.apiClient.send(path: "/api/mobile/v1/tasks/\(task.id)")
+            task = refreshed
+            onSave(refreshed)
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func addSubtask() {
+        let trimmed = newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        Task { @MainActor in
+            do {
+                let _: SubTaskDTO = try await environment.apiClient.send(
+                    path: "/api/mobile/v1/tasks/\(task.id)/subtasks",
+                    method: "POST",
+                    body: NewSubtaskRequest(title: trimmed)
+                )
+                newSubtaskTitle = ""
+                await reload()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func renameSubtask(_ subtask: SubTaskDTO, title: String) async {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != subtask.title else { return }
+
+        do {
+            let _: SubTaskDTO = try await environment.apiClient.send(
+                path: "/api/mobile/v1/subtasks/\(subtask.id)",
+                method: "PATCH",
+                body: SubtaskPatchRequest(title: trimmed, done: subtask.done, sortOrder: subtask.sortOrder)
+            )
+            await reload()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func toggleSubtask(_ subtask: SubTaskDTO) async {
+        do {
+            let _: SubTaskDTO = try await environment.apiClient.send(
+                path: "/api/mobile/v1/subtasks/\(subtask.id)",
+                method: "PATCH",
+                body: SubtaskPatchRequest(title: subtask.title, done: !subtask.done, sortOrder: subtask.sortOrder)
+            )
+            await reload()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteSubtask(_ subtask: SubTaskDTO) async {
+        do {
+            let _: EmptySuccessDTO = try await environment.apiClient.send(
+                path: "/api/mobile/v1/subtasks/\(subtask.id)",
+                method: "DELETE",
+                body: EmptyBody()
+            )
+            await reload()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteTask() async {
+        do {
+            let _: EmptySuccessDTO = try await environment.apiClient.send(
+                path: "/api/mobile/v1/tasks/\(task.id)",
+                method: "DELETE",
+                body: EmptyBody()
+            )
+            await environment.notificationScheduler.cancelReminder(for: task.id)
+            onDelete(task.id)
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func blockTitle(_ block: TimeBlockDTO) -> String {
+        deploymentTargetTitle(for: task, subTaskId: block.subTaskId, language: settings.language)
+    }
+
+    private func blockSubtitle(_ block: TimeBlockDTO) -> String {
+        if block.isAllDay {
+            let mode = block.originTimeBlockId == nil
+                ? localizedAppText(for: settings.language, chinese: "手动部署", english: "Manual assignment")
+                : localizedAppText(for: settings.language, chinese: "自动同步部署", english: "Auto assignment")
+            return "\(formattedDateTime(block.startAt)) · \(mode)"
+        }
+
+        return "\(formattedDateTime(block.startAt)) - \(Date.fromISO8601(block.endAt)?.formatted(date: .omitted, time: .shortened) ?? block.endAt)"
+    }
+
+    private func formattedDateTime(_ string: String) -> String {
+        Date.fromISO8601(string)?.formatted(date: .abbreviated, time: .shortened) ?? string
+    }
+
+    private func statusSymbol(for status: TaskStatus) -> String {
+        switch status {
+        case .todo, .inbox:
+            return "circle"
+        case .doing:
+            return "circle.dashed"
+        case .done:
+            return "checkmark.circle.fill"
+        case .archived:
+            return "archivebox"
+        }
+    }
+
+    private func statusText(_ status: TaskStatus) -> String {
+        switch status {
+        case .done:
+            return localizedAppText(for: settings.language, chinese: "已完成", english: "Done")
+        case .doing:
+            return localizedAppText(for: settings.language, chinese: "进行中", english: "Doing")
+        case .inbox:
+            return localizedAppText(for: settings.language, chinese: "收件箱", english: "Inbox")
+        case .archived:
+            return localizedAppText(for: settings.language, chinese: "已归档", english: "Archived")
+        case .todo:
+            return localizedAppText(for: settings.language, chinese: "待办", english: "Todo")
+        }
+    }
+
+    private func statusColor(for status: TaskStatus) -> Color {
+        switch status {
+        case .done:
+            return .green
+        case .doing:
+            return SagePalette.brand
+        default:
+            return .secondary
+        }
+    }
+
+    private func priorityText(_ priority: TaskPriority) -> String {
+        switch priority {
+        case .low:
+            return localizedAppText(for: settings.language, chinese: "低", english: "Low")
+        case .medium:
+            return localizedAppText(for: settings.language, chinese: "中", english: "Medium")
+        case .high:
+            return localizedAppText(for: settings.language, chinese: "高", english: "High")
+        case .urgent:
+            return localizedAppText(for: settings.language, chinese: "紧急", english: "Urgent")
+        }
+    }
+
+    private func priorityColor(_ priority: TaskPriority) -> Color {
+        switch priority {
+        case .urgent:
+            return .red
+        case .high:
+            return SagePalette.brand
+        case .medium:
+            return .blue
+        case .low:
+            return .secondary
+        }
+    }
+}
+
+private struct TaskMetadataItem: Identifiable {
+    let id: String
+    let label: String
+    let value: String
+    let systemName: String
+    let tint: Color
+}
+
+private struct TaskMetadataListView: View {
+    let items: [TaskMetadataItem]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                HStack(alignment: .center, spacing: 12) {
+                    Label(item.label, systemImage: item.systemName)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(item.tint)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+
+                    Spacer(minLength: 12)
+
+                    Text(item.value)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+
+                if index < items.count - 1 {
+                    Divider()
+                        .padding(.leading, 12)
+                }
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(SagePalette.separator)
+        )
+    }
+}
+
+private struct TaskTimeBlockRow: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "calendar.badge.clock")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(SagePalette.brand)
+                .frame(width: 22)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.body.weight(.semibold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Text(subtitle)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+
+            Spacer(minLength: 8)
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 2)
     }
 }
 
@@ -833,11 +1975,11 @@ struct TaskEditorSheet: View {
     @State private var errorMessage: String?
     @State private var isSaving = false
 
-    init(task: TaskDTO?, tags: [TagDTO], onSave: @escaping (TaskDTO) -> Void) {
+    init(task: TaskDTO?, tags: [TagDTO], startsInEditMode: Bool = false, onSave: @escaping (TaskDTO) -> Void) {
         self.task = task
         self.tags = tags
         self.onSave = onSave
-        _mode = State(initialValue: task == nil ? .edit : .view)
+        _mode = State(initialValue: task == nil || startsInEditMode ? .edit : .view)
         _availableTags = State(initialValue: tags)
     }
 

@@ -10,7 +10,8 @@ final class SearchViewModel {
     var errorMessage: String?
 
     func search(using api: APIClient) async {
-        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
             results = SearchResultsDTO(tasks: [], notes: [], tags: [])
             return
         }
@@ -20,9 +21,10 @@ final class SearchViewModel {
             results = try await api.send(
                 path: makeAPIPath(
                     "/api/mobile/v1/search",
-                    queryItems: [URLQueryItem(name: "q", value: query)]
+                    queryItems: [URLQueryItem(name: "q", value: trimmed)]
                 )
             )
+            errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -34,27 +36,40 @@ struct SearchView: View {
     @Environment(AppEnvironment.self) private var environment
     @Environment(AppSettingsStore.self) private var settings
     @State private var viewModel = SearchViewModel()
-    @State private var selectedTask: TaskSearchDTO?
-    @State private var selectedNoteID: String?
-    @State private var selectedTag: TagSearchDTO?
-    @State private var loadedTask: TaskDTO?
-    @State private var loadedNote: NoteDTO?
-    @State private var loadedTagDetail: TagDetailDTO?
+    @FocusState private var searchFocused: Bool
+    @State private var recentQueries = UserDefaults.standard.stringArray(forKey: "sage.search.recents") ?? []
+    @State private var destination: SearchNavigationDestination?
+
+    let shouldAutoFocus: Bool
+
+    init(shouldAutoFocus: Bool = false) {
+        self.shouldAutoFocus = shouldAutoFocus
+    }
 
     var body: some View {
         List {
-            if viewModel.query.isEmpty {
-                EmptyStateView(systemName: "magnifyingglass", title: "search.empty.title", message: "search.empty.message")
-                    .listRowBackground(Color.clear)
+            searchFieldSection
+
+            if let errorMessage = viewModel.errorMessage {
+                ErrorStateView(message: errorMessage, retry: {
+                    Task { @MainActor in
+                        await viewModel.search(using: environment.apiClient)
+                    }
+                })
+                .listRowBackground(Color.clear)
+            } else if viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                recentSearchesSection
             } else if viewModel.isLoading {
                 LoadingStateView()
                     .listRowBackground(Color.clear)
             } else if viewModel.results.tasks.isEmpty && viewModel.results.notes.isEmpty && viewModel.results.tags.isEmpty {
-                EmptyStateView(systemName: "sparkle.magnifyingglass", title: "search.noResults.title", message: "search.noResults.message")
+                EmptyStateView(systemName: "magnifyingglass", title: "search.noResults.title", message: "search.noResults.message")
                     .listRowBackground(Color.clear)
             } else {
+                topResultsSection
+
                 if !viewModel.results.tasks.isEmpty {
-                    Section("tasks.title") {
+                    Section(localizedAppText(for: settings.language, chinese: "任务", english: "Tasks")) {
                         ForEach(viewModel.results.tasks) { task in
                             Button {
                                 Task { @MainActor in
@@ -63,18 +78,21 @@ struct SearchView: View {
                             } label: {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text(task.title)
+                                        .font(.body.weight(.semibold))
                                     Text(LocalizedStringKey(task.status.localizationKey))
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
                                 }
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             }
+                            .buttonStyle(.plain)
                             .sageListRowChrome()
                         }
                     }
                 }
 
                 if !viewModel.results.notes.isEmpty {
-                    Section("notes.title") {
+                    Section(localizedAppText(for: settings.language, chinese: "笔记", english: "Notes")) {
                         ForEach(viewModel.results.notes) { note in
                             Button {
                                 Task { @MainActor in
@@ -83,27 +101,37 @@ struct SearchView: View {
                             } label: {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text(note.title)
+                                        .font(.body.weight(.semibold))
                                     Text(note.summary)
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
                                         .lineLimit(2)
                                 }
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             }
+                            .buttonStyle(.plain)
                             .sageListRowChrome()
                         }
                     }
                 }
 
                 if !viewModel.results.tags.isEmpty {
-                    Section("tags.title") {
+                    Section(localizedAppText(for: settings.language, chinese: "标签", english: "Tags")) {
                         ForEach(viewModel.results.tags) { tag in
                             Button {
                                 Task { @MainActor in
                                     await openTag(tag.id)
                                 }
                             } label: {
-                                TagChipView(tag: TagDTO(id: tag.id, name: tag.name, slug: tag.slug, color: tag.color, icon: nil, description: nil, sortOrder: 0, taskCount: nil, noteCount: nil, createdAt: "", updatedAt: ""))
+                                HStack {
+                                    TagChipView(tag: TagDTO(id: tag.id, name: tag.name, slug: tag.slug, color: tag.color, icon: nil, description: nil, sortOrder: 0, taskCount: nil, noteCount: nil, createdAt: "", updatedAt: ""))
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundStyle(.tertiary)
+                                }
                             }
+                            .buttonStyle(.plain)
                             .sageListRowChrome()
                         }
                     }
@@ -111,42 +139,221 @@ struct SearchView: View {
             }
         }
         .sageListChrome()
-        .searchable(text: $viewModel.query, placement: .navigationBarDrawer(displayMode: .always), prompt: Text("search.placeholder"))
         .navigationTitle(localizedAppText(for: settings.language, chinese: "搜索", english: "Search"))
-        .onSubmit(of: .search) {
-            Task { @MainActor in
-                await viewModel.search(using: environment.apiClient)
-            }
-        }
-        .sheet(item: $loadedTask) { task in
-            TaskEditorSheet(task: task, tags: task.tags) { _ in }
-        }
-        .sheet(item: $loadedNote) { note in
-            NoteEditorSheet(note: note, tags: note.tags) { _ in }
-        }
-        .sheet(item: $loadedTagDetail) { detail in
-            NavigationStack {
-                List {
-                    Section {
-                        TagChipView(tag: detail.tag)
-                            .sageListRowChrome()
-                    }
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            if shouldAutoFocus {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    searchFocused = true
                 }
-                .sageListChrome()
-                .navigationTitle(detail.tag.name)
             }
         }
+        .navigationDestination(item: $destination) { destination in
+            switch destination {
+            case let .task(task, tags):
+                TaskDetailView(task: task, availableTags: tags) { _ in } onDelete: { _ in }
+            case let .note(note, tags):
+                NoteDetailView(note: note, availableTags: tags) { _ in } onDelete: {}
+            case let .tag(tag, tags):
+                TagDetailView(tag: tag, availableTags: tags)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var searchFieldSection: some View {
+        Section {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                TextField(localizedAppText(for: settings.language, chinese: "搜索任务、笔记、标签", english: "Search tasks, notes, tags"), text: $viewModel.query)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .focused($searchFocused)
+                    .submitLabel(.search)
+                    .onSubmit {
+                        persistRecentQuery()
+                        Task { @MainActor in
+                            await viewModel.search(using: environment.apiClient)
+                        }
+                    }
+                if !viewModel.query.isEmpty {
+                    Button {
+                        viewModel.query = ""
+                        viewModel.results = SearchResultsDTO(tasks: [], notes: [], tags: [])
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.tertiary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: SageCornerRadius.regular, style: .continuous)
+                    .fill(Color(uiColor: .secondarySystemBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: SageCornerRadius.regular, style: .continuous)
+                    .strokeBorder(SagePalette.separator)
+            )
+        }
+        .listRowBackground(Color.clear)
+    }
+
+    @ViewBuilder
+    private var recentSearchesSection: some View {
+        if recentQueries.isEmpty {
+            EmptyStateView(systemName: "magnifyingglass", title: "search.empty.title", message: "search.empty.message")
+                .listRowBackground(Color.clear)
+        } else {
+            Section(localizedAppText(for: settings.language, chinese: "最近搜索", english: "Recent searches")) {
+                ForEach(recentQueries, id: \.self) { recent in
+                    Button {
+                        viewModel.query = recent
+                        Task { @MainActor in
+                            await viewModel.search(using: environment.apiClient)
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .foregroundStyle(.secondary)
+                            Text(recent)
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .sageListRowChrome()
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var topResultsSection: some View {
+        let top = Array((viewModel.results.tasks.map { SearchTopResult.task($0.id, $0.title) }
+            + viewModel.results.notes.map { SearchTopResult.note($0.id, $0.title) }
+            + viewModel.results.tags.map { SearchTopResult.tag($0.id, $0.name) }).prefix(3))
+
+        if !top.isEmpty {
+            Section(localizedAppText(for: settings.language, chinese: "最佳匹配", english: "Top results")) {
+                ForEach(top, id: \.id) { result in
+                    Button {
+                        Task { @MainActor in
+                            switch result {
+                            case let .task(id, _):
+                                await openTask(id)
+                            case let .note(id, _):
+                                await openNote(id)
+                            case let .tag(id, _):
+                                await openTag(id)
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: result.symbolName)
+                                .foregroundStyle(SagePalette.brand)
+                            Text(result.title)
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .sageListRowChrome()
+                }
+            }
+        }
+    }
+
+    private func persistRecentQuery() {
+        let trimmed = viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        recentQueries.removeAll { $0.caseInsensitiveCompare(trimmed) == .orderedSame }
+        recentQueries.insert(trimmed, at: 0)
+        recentQueries = Array(recentQueries.prefix(8))
+        UserDefaults.standard.set(recentQueries, forKey: "sage.search.recents")
     }
 
     private func openTask(_ id: String) async {
-        loadedTask = try? await environment.apiClient.send(path: "/api/mobile/v1/tasks/\(id)")
+        do {
+            async let taskRequest: TaskDTO = environment.apiClient.send(path: "/api/mobile/v1/tasks/\(id)")
+            async let tagsRequest: [TagDTO] = environment.apiClient.send(path: "/api/mobile/v1/tags")
+            destination = try await .task(taskRequest, tagsRequest)
+        } catch {
+            viewModel.errorMessage = error.localizedDescription
+        }
     }
 
     private func openNote(_ id: String) async {
-        loadedNote = try? await environment.apiClient.send(path: "/api/mobile/v1/notes/\(id)")
+        do {
+            async let noteRequest: NoteDTO = environment.apiClient.send(path: "/api/mobile/v1/notes/\(id)")
+            async let tagsRequest: [TagDTO] = environment.apiClient.send(path: "/api/mobile/v1/tags")
+            destination = try await .note(noteRequest, tagsRequest)
+        } catch {
+            viewModel.errorMessage = error.localizedDescription
+        }
     }
 
     private func openTag(_ id: String) async {
-        loadedTagDetail = try? await environment.apiClient.send(path: "/api/mobile/v1/tags/\(id)/detail")
+        do {
+            async let detailRequest: TagDetailDTO = environment.apiClient.send(path: "/api/mobile/v1/tags/\(id)/detail")
+            async let tagsRequest: [TagDTO] = environment.apiClient.send(path: "/api/mobile/v1/tags")
+            let detail = try await detailRequest
+            destination = try await .tag(detail.tag, tagsRequest)
+        } catch {
+            viewModel.errorMessage = error.localizedDescription
+        }
+    }
+}
+
+private enum SearchNavigationDestination: Hashable, Identifiable {
+    case task(TaskDTO, [TagDTO])
+    case note(NoteDTO, [TagDTO])
+    case tag(TagDTO, [TagDTO])
+
+    var id: String {
+        switch self {
+        case let .task(task, _):
+            return "task-\(task.id)"
+        case let .note(note, _):
+            return "note-\(note.id)"
+        case let .tag(tag, _):
+            return "tag-\(tag.id)"
+        }
+    }
+}
+
+private enum SearchTopResult {
+    case task(String, String)
+    case note(String, String)
+    case tag(String, String)
+
+    var id: String {
+        switch self {
+        case let .task(id, _):
+            return "task-\(id)"
+        case let .note(id, _):
+            return "note-\(id)"
+        case let .tag(id, _):
+            return "tag-\(id)"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case let .task(_, title), let .note(_, title), let .tag(_, title):
+            return title
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .task:
+            return "checklist"
+        case .note:
+            return "note.text"
+        case .tag:
+            return "tag"
+        }
     }
 }

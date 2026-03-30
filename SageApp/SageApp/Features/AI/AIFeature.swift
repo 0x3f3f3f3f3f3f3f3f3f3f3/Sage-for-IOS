@@ -117,8 +117,8 @@ struct AIAssistantView: View {
                         HStack(alignment: .center, spacing: 12) {
                             TextField("ai.placeholder", text: $viewModel.input, axis: .vertical)
                                 .lineLimit(1...6)
-                                .padding(.vertical, 10)
-                                .frame(minHeight: 44, alignment: .center)
+                                .padding(.vertical, SageComposerMetrics.fieldVerticalPadding)
+                                .frame(minHeight: SageComposerMetrics.fieldMinHeight, alignment: .center)
                                 .focused($inputFocused)
                             Button {
                                 inputFocused = false

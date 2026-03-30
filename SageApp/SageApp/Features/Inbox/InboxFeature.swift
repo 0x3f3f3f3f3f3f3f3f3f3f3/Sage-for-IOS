@@ -142,9 +142,11 @@ struct InboxView: View {
         )
         .safeAreaInset(edge: .bottom) {
             FloatingComposerBar {
-                HStack(spacing: 12) {
+                HStack(alignment: .center, spacing: 12) {
                     TextField("inbox.capture.placeholder", text: $viewModel.composerText, axis: .vertical)
                         .lineLimit(1...4)
+                        .padding(.vertical, SageComposerMetrics.fieldVerticalPadding)
+                        .frame(minHeight: SageComposerMetrics.fieldMinHeight, alignment: .center)
                         .focused($composerFocused)
                     Button {
                         composerFocused = false

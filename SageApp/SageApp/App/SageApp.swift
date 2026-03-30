@@ -21,17 +21,15 @@ struct SageApp: App {
 private enum RootTab: String, Hashable {
     case inbox
     case tasks
-    case timeline
+    case plan
     case notes
     case ai
 }
 
-private enum GlobalSheet: Identifiable {
+private enum AppDestination: Hashable {
     case search
     case tags
     case settings
-
-    var id: Int { hashValue }
 }
 
 @MainActor
@@ -44,9 +42,19 @@ struct RootSceneView: View {
             switch environment.authStore.phase {
             case .launching:
                 ZStack {
-                    LinearGradient(colors: [.orange.opacity(0.18), .clear, .yellow.opacity(0.12)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    SagePalette.groupedBackground
                         .ignoresSafeArea()
-                    LoadingStateView()
+
+                    VStack(spacing: 18) {
+                        Image("BrandMark")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 72, height: 72)
+                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                        LoadingStateView()
+                    }
+                    .padding(.horizontal, 24)
                 }
             case .signedOut:
                 AuthSceneView()
@@ -56,93 +64,48 @@ struct RootSceneView: View {
         }
         .environment(\.locale, settings.locale)
         .preferredColorScheme(settings.colorSchemeOverride)
-        .animation(.spring(response: 0.32, dampingFraction: 0.84), value: environment.authStore.phase)
+        .animation(.spring(response: 0.3, dampingFraction: 0.88), value: environment.authStore.phase)
     }
 }
 
 @MainActor
 private struct MainShellView: View {
-    @Environment(AppEnvironment.self) private var environment
     @Environment(AppSettingsStore.self) private var settings
     @SceneStorage("mainShellSelection") private var selectionRawValue = RootTab.inbox.rawValue
-    @State private var activeSheet: GlobalSheet?
-
-    private var sheetColorSchemeID: String {
-        switch settings.sheetPreferredColorScheme {
-        case .dark:
-            return "dark"
-        case .light:
-            return "light"
-        @unknown default:
-            return "system"
-        }
-    }
 
     var body: some View {
         TabView(selection: selectionBinding) {
-            NavigationStack {
-                InboxView()
-                    .toolbar { toolbar }
-            }
-            .tag(RootTab.inbox)
-            .tabItem { Label(localizedAppText(for: settings.language, chinese: "收件箱", english: "Inbox"), systemImage: "tray.full") }
+            InboxTabScene()
+                .tag(RootTab.inbox)
+                .tabItem {
+                    Label(localizedAppText(for: settings.language, chinese: "收件箱", english: "Inbox"), systemImage: "tray.full")
+                }
 
-            NavigationStack {
-                TasksView()
-                    .toolbar { toolbar }
-            }
-            .tag(RootTab.tasks)
-            .tabItem { Label(localizedAppText(for: settings.language, chinese: "任务", english: "Tasks"), systemImage: "checklist") }
+            TasksTabScene()
+                .tag(RootTab.tasks)
+                .tabItem {
+                    Label(localizedAppText(for: settings.language, chinese: "任务", english: "Tasks"), systemImage: "checklist")
+                }
 
-            NavigationStack {
-                TimelineScreen()
-                    .toolbar { toolbar }
-            }
-            .tag(RootTab.timeline)
-            .tabItem { Label(localizedAppText(for: settings.language, chinese: "日程", english: "Timeline"), systemImage: "calendar") }
+            PlanTabScene()
+                .tag(RootTab.plan)
+                .tabItem {
+                    Label(localizedAppText(for: settings.language, chinese: "规划", english: "Plan"), systemImage: "calendar")
+                }
 
-            NavigationStack {
-                NotesView()
-                    .toolbar { toolbar }
-            }
-            .tag(RootTab.notes)
-            .tabItem { Label(localizedAppText(for: settings.language, chinese: "笔记", english: "Notes"), systemImage: "note.text") }
+            NotesTabScene()
+                .tag(RootTab.notes)
+                .tabItem {
+                    Label(localizedAppText(for: settings.language, chinese: "笔记", english: "Notes"), systemImage: "note.text")
+                }
 
-            NavigationStack {
-                AIAssistantView()
-                    .toolbar { toolbar }
-            }
-            .tag(RootTab.ai)
-            .tabItem { Label(localizedAppText(for: settings.language, chinese: "AI", english: "AI"), systemImage: "sparkles") }
+            AITabScene()
+                .tag(RootTab.ai)
+                .tabItem {
+                    Label("AI", systemImage: "sparkles")
+                }
         }
-        .tabViewStyle(.sidebarAdaptable)
-        .sheet(item: $activeSheet) { sheet in
-            switch sheet {
-            case .search:
-                NavigationStack { SearchView() }
-                    .environment(\.locale, settings.locale)
-                    .preferredColorScheme(settings.sheetPreferredColorScheme)
-                    .id("\(settings.language.rawValue)-\(settings.theme.rawValue)-\(sheetColorSchemeID)-search")
-            case .tags:
-                NavigationStack { TagsView() }
-                    .environment(\.locale, settings.locale)
-                    .preferredColorScheme(settings.sheetPreferredColorScheme)
-                    .id("\(settings.language.rawValue)-\(settings.theme.rawValue)-\(sheetColorSchemeID)-tags")
-            case .settings:
-                NavigationStack { SettingsView() }
-                    .environment(\.locale, settings.locale)
-                    .preferredColorScheme(settings.sheetPreferredColorScheme)
-                    .id("\(settings.language.rawValue)-\(settings.theme.rawValue)-\(sheetColorSchemeID)-settings")
-            }
-        }
-        .background(
-            LinearGradient(
-                colors: [.orange.opacity(0.10), .clear, .yellow.opacity(0.10)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-        )
+        .tint(SagePalette.brand)
     }
 
     private var selectionBinding: Binding<RootTab> {
@@ -151,42 +114,113 @@ private struct MainShellView: View {
             set: { selectionRawValue = $0.rawValue }
         )
     }
+}
 
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        ToolbarItemGroup(placement: .topBarTrailing) {
-            Button {
-                activeSheet = .search
-            } label: {
-                Image(systemName: "magnifyingglass")
-            }
-            .buttonStyle(.plain)
-            Menu {
-                Button {
-                    activeSheet = .tags
-                } label: {
-                    Label("menu.tags", systemImage: "tag")
-                }
+@MainActor
+private struct InboxTabScene: View {
+    var body: some View {
+        AppTabContainer {
+            InboxView()
+        }
+    }
+}
 
-                Button {
-                    activeSheet = .settings
-                } label: {
-                    Label("menu.settings", systemImage: "gearshape")
-                }
+@MainActor
+private struct TasksTabScene: View {
+    var body: some View {
+        AppTabContainer {
+            TasksView()
+        }
+    }
+}
 
-                Divider()
+@MainActor
+private struct PlanTabScene: View {
+    var body: some View {
+        AppTabContainer {
+            TimelineScreen()
+        }
+    }
+}
 
-                Button(role: .destructive) {
-                    Task { @MainActor in
-                        await environment.authStore.logout()
+@MainActor
+private struct NotesTabScene: View {
+    var body: some View {
+        AppTabContainer {
+            NotesView()
+        }
+    }
+}
+
+@MainActor
+private struct AITabScene: View {
+    var body: some View {
+        AppTabContainer {
+            AIAssistantView()
+        }
+    }
+}
+
+@MainActor
+private struct AppTabContainer<Content: View>: View {
+    @Environment(AppEnvironment.self) private var environment
+    @Environment(AppSettingsStore.self) private var settings
+
+    @State private var path = NavigationPath()
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            content
+                .navigationDestination(for: AppDestination.self) { destination in
+                    switch destination {
+                    case .search:
+                        SearchView(shouldAutoFocus: true)
+                    case .tags:
+                        TagsView()
+                    case .settings:
+                        SettingsView()
                     }
-                } label: {
-                    Label("settings.logout", systemImage: "rectangle.portrait.and.arrow.right")
                 }
-            } label: {
-                Image(systemName: "person.crop.circle")
-                    .font(.title3)
-            }
+                .toolbar {
+                    ToolbarItemGroup(placement: .topBarTrailing) {
+                        Button {
+                            path.append(AppDestination.search)
+                        } label: {
+                            Image(systemName: "magnifyingglass")
+                        }
+
+                        Menu {
+                            Button {
+                                path.append(AppDestination.tags)
+                            } label: {
+                                Label(localizedAppText(for: settings.language, chinese: "标签", english: "Tags"), systemImage: "tag")
+                            }
+
+                            Button {
+                                path.append(AppDestination.settings)
+                            } label: {
+                                Label(localizedAppText(for: settings.language, chinese: "设置", english: "Settings"), systemImage: "gearshape")
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+                                Task { @MainActor in
+                                    await environment.authStore.logout()
+                                }
+                            } label: {
+                                Label("settings.logout", systemImage: "rectangle.portrait.and.arrow.right")
+                            }
+                        } label: {
+                            Image(systemName: "person.crop.circle")
+                        }
+                    }
+                }
         }
     }
 }

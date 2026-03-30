@@ -302,6 +302,19 @@ enum TaskPriority: String, Codable, CaseIterable, Hashable, Identifiable {
             return "tasks.priority.urgent"
         }
     }
+
+    var sortRank: Int {
+        switch self {
+        case .urgent:
+            return 4
+        case .high:
+            return 3
+        case .medium:
+            return 2
+        case .low:
+            return 1
+        }
+    }
 }
 
 enum NoteType: String, Codable, CaseIterable, Hashable, Identifiable {

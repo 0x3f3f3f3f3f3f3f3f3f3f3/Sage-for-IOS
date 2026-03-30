@@ -55,34 +55,103 @@ struct NotesView: View {
 
     var body: some View {
         List {
+            Section {
+                SurfaceCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundStyle(.secondary)
+
+                            TextField(
+                                localizedAppText(for: settings.language, chinese: "搜索标题、摘要或内容", english: "Search title, summary or content"),
+                                text: $viewModel.query
+                            )
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .onSubmit {
+                                Task { @MainActor in
+                                    await viewModel.load(using: environment.apiClient)
+                                }
+                            }
+
+                            if !viewModel.query.isEmpty {
+                                Button {
+                                    viewModel.query = ""
+                                    Task { @MainActor in
+                                        await viewModel.load(using: environment.apiClient)
+                                    }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                filterChip(
+                                    title: localizedAppText(for: settings.language, chinese: "全部类型", english: "All types"),
+                                    isSelected: viewModel.typeFilter == nil
+                                ) {
+                                    viewModel.typeFilter = nil
+                                }
+
+                                ForEach(NoteType.allCases) { type in
+                                    filterChip(
+                                        title: localizedString(type.localizationKey),
+                                        isSelected: viewModel.typeFilter == type
+                                    ) {
+                                        viewModel.typeFilter = viewModel.typeFilter == type ? nil : type
+                                    }
+                                }
+                            }
+                        }
+
+                        if !viewModel.tags.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    filterChip(
+                                        title: localizedAppText(for: settings.language, chinese: "全部标签", english: "All tags"),
+                                        isSelected: viewModel.selectedTagID == nil
+                                    ) {
+                                        viewModel.selectedTagID = nil
+                                    }
+
+                                    ForEach(viewModel.tags) { tag in
+                                        Button {
+                                            viewModel.selectedTagID = viewModel.selectedTagID == tag.id ? nil : tag.id
+                                        } label: {
+                                            TagChipView(tag: tag)
+                                                .opacity(viewModel.selectedTagID == nil || viewModel.selectedTagID == tag.id ? 1 : 0.42)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+            }
+
             notesContent
         }
         .sageListChrome()
-        .searchable(text: $viewModel.query, placement: .navigationBarDrawer(displayMode: .always), prompt: Text("search.placeholder"))
         .navigationTitle(localizedAppText(for: settings.language, chinese: "笔记", english: "Notes"))
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
                     isCreatingNote = true
                 } label: {
-                    Label("notes.new", systemImage: "square.and.pencil")
-                }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    filtersMenu
-                } label: {
-                    Image(systemName: "line.3.horizontal.decrease.circle")
+                    Image(systemName: "square.and.pencil")
                 }
             }
         }
         .task {
             await viewModel.load(using: environment.apiClient)
-        }
-        .onSubmit(of: .search) {
-            Task { @MainActor in
-                await viewModel.load(using: environment.apiClient)
-            }
         }
         .onChange(of: viewModel.typeFilter) { _, _ in
             Task { @MainActor in
@@ -125,58 +194,47 @@ struct NotesView: View {
         }
     }
 
-    @ViewBuilder
-    private var filtersMenu: some View {
-        Picker("notes.type", selection: typeFilterBinding) {
-            Text("tasks.filter.all").tag(Optional<NoteType>.none)
-            ForEach(NoteType.allCases) { type in
-                Text(LocalizedStringKey(type.localizationKey)).tag(Optional(type))
-            }
-        }
-        Picker("notes.tag", selection: selectedTagBinding) {
-            Text("tasks.filter.all").tag(Optional<String>.none)
-            ForEach(viewModel.tags) { tag in
-                Text(tag.name).tag(Optional(tag.id))
-            }
-        }
-    }
-
-    private var typeFilterBinding: Binding<NoteType?> {
-        Binding(get: { viewModel.typeFilter }, set: { viewModel.typeFilter = $0 })
-    }
-
-    private var selectedTagBinding: Binding<String?> {
-        Binding(get: { viewModel.selectedTagID }, set: { viewModel.selectedTagID = $0 })
-    }
-
     private func noteRow(_ note: NoteDTO) -> some View {
-        Button {
-            editingNote = note
+        NavigationLink {
+            NoteDetailView(note: note, availableTags: viewModel.tags) { _ in
+                handleNoteSaved(note)
+            } onDelete: {
+                reloadNotes()
+            }
         } label: {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 Text(note.title)
                     .font(.body.weight(.semibold))
+
                 if !note.summary.isEmpty {
                     Text(note.summary)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
+
+                HStack(spacing: 8) {
+                    MetadataBadge(systemName: "calendar", title: formattedDate(note.updatedAt), tint: .secondary)
+                    MetadataBadge(systemName: "doc.text", title: localizedString(note.type.localizationKey), tint: .secondary)
+                    MetadataBadge(systemName: "flag", title: localizedString(note.importance.localizationKey), tint: .secondary)
+                }
+
                 if !note.tags.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(note.tags) { tag in
-                                TagChipView(tag: tag)
-                            }
-                        }
-                    }
+                    CompactTagStrip(tags: note.tags, limit: 2)
                 }
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 6)
         }
         .buttonStyle(.plain)
         .sageListRowChrome()
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button {
+                editingNote = note
+            } label: {
+                Label("common.edit", systemImage: "square.and.pencil")
+            }
+            .tint(SagePalette.brand)
+
             Button(role: .destructive) {
                 Task { @MainActor in
                     await viewModel.delete(id: note.id, using: environment.apiClient)
@@ -201,6 +259,172 @@ struct NotesView: View {
         Task { @MainActor in
             await viewModel.load(using: environment.apiClient)
         }
+    }
+
+    @ViewBuilder
+    private func filterChip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(isSelected ? .white : .primary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(isSelected ? SagePalette.brand : Color(uiColor: .secondarySystemGroupedBackground))
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func localizedString(_ key: String) -> String {
+        String(localized: String.LocalizationValue(key), locale: settings.locale)
+    }
+
+    private func formattedDate(_ string: String) -> String {
+        Date.fromISO8601(string)?.formatted(date: .abbreviated, time: .omitted) ?? string
+    }
+}
+
+@MainActor
+struct NoteDetailView: View {
+    @Environment(AppEnvironment.self) private var environment
+    @Environment(AppSettingsStore.self) private var settings
+    @Environment(\.dismiss) private var dismiss
+
+    let availableTags: [TagDTO]
+    let onSave: (NoteDTO) -> Void
+    let onDelete: () -> Void
+
+    @State private var note: NoteDTO
+    @State private var showingEditor = false
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+
+    init(note: NoteDTO, availableTags: [TagDTO], onSave: @escaping (NoteDTO) -> Void, onDelete: @escaping () -> Void) {
+        self.availableTags = availableTags
+        self.onSave = onSave
+        self.onDelete = onDelete
+        _note = State(initialValue: note)
+    }
+
+    var body: some View {
+        List {
+            Section {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(note.title)
+                        .font(.title2.weight(.semibold))
+
+                    if !note.summary.isEmpty {
+                        Text(note.summary)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    HStack(spacing: 8) {
+                        MetadataBadge(systemName: "doc.text", title: localizedString(note.type.localizationKey), tint: .secondary)
+                        MetadataBadge(systemName: "flag", title: localizedString(note.importance.localizationKey), tint: .secondary)
+                        MetadataBadge(systemName: "clock", title: formattedDateTime(note.updatedAt), tint: .secondary)
+                    }
+                }
+                .padding(.vertical, 8)
+            }
+
+            if !note.tags.isEmpty {
+                Section(localizedAppText(for: settings.language, chinese: "标签", english: "Tags")) {
+                    CompactTagStrip(tags: note.tags, limit: 99)
+                        .padding(.vertical, 4)
+                }
+            }
+
+            Section(localizedAppText(for: settings.language, chinese: "内容", english: "Content")) {
+                MarkdownPreviewView(markdown: note.contentMd)
+                    .padding(.vertical, 6)
+            }
+
+            if !note.relatedTasks.isEmpty {
+                Section(localizedAppText(for: settings.language, chinese: "关联任务", english: "Related tasks")) {
+                    ForEach(note.relatedTasks, id: \.id) { relatedTask in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(relatedTask.title)
+                                .font(.body.weight(.medium))
+                            HStack(spacing: 8) {
+                                MetadataBadge(systemName: "flag", title: localizedString(relatedTask.priority.localizationKey), tint: .secondary)
+                                if let dueAt = relatedTask.dueAt {
+                                    MetadataBadge(systemName: "calendar", title: formattedDate(dueAt), tint: .secondary)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+
+            if let errorMessage {
+                Section {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+        .sageListChrome()
+        .navigationTitle(localizedAppText(for: settings.language, chinese: "笔记详情", english: "Note"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("common.edit") {
+                    showingEditor = true
+                }
+            }
+        }
+        .task {
+            await reload()
+        }
+        .refreshable {
+            await reload()
+        }
+        .sheet(isPresented: $showingEditor) {
+            NoteEditorSheet(note: note, tags: availableTags) { saved in
+                note = saved
+                onSave(saved)
+            } onDelete: {
+                onDelete()
+                dismiss()
+            }
+        }
+        .overlay {
+            if isLoading {
+                ProgressView()
+                    .padding()
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+        }
+    }
+
+    private func reload() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let refreshed: NoteDTO = try await environment.apiClient.send(path: "/api/mobile/v1/notes/\(note.id)")
+            note = refreshed
+            onSave(refreshed)
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func localizedString(_ key: String) -> String {
+        String(localized: String.LocalizationValue(key), locale: settings.locale)
+    }
+
+    private func formattedDate(_ string: String) -> String {
+        Date.fromISO8601(string)?.formatted(date: .abbreviated, time: .omitted) ?? string
+    }
+
+    private func formattedDateTime(_ string: String) -> String {
+        Date.fromISO8601(string)?.formatted(date: .abbreviated, time: .shortened) ?? string
     }
 }
 
