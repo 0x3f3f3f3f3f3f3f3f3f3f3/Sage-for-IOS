@@ -29,6 +29,24 @@
 		A00000000000000000000114 /* SageApp/Resources/LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000214 /* SageApp/Resources/LaunchScreen.storyboard */; };
 		A00000000000000000000115 /* SageApp/Resources/Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000215 /* SageApp/Resources/Localizable.xcstrings */; };
 		A00000000000000000000116 /* SageAppTests/SageAppTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000216 /* SageAppTests/SageAppTests.swift */; };
+		A00000000000000000000117 /* SageApp/Features/PlanTimeline/PlanTimelineHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000219 /* SageApp/Features/PlanTimeline/PlanTimelineHomeView.swift */; };
+		A00000000000000000000118 /* SageApp/Features/PlanTimeline/PlanTimelineManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000021A /* SageApp/Features/PlanTimeline/PlanTimelineManager.swift */; };
+		A00000000000000000000119 /* SageApp/Features/PlanTimeline/PlanTimelineRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000021B /* SageApp/Features/PlanTimeline/PlanTimelineRepository.swift */; };
+		A0000000000000000000011A /* SageApp/Features/PlanTimeline/PlanTimelineModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000021C /* SageApp/Features/PlanTimeline/PlanTimelineModels.swift */; };
+		A0000000000000000000011B /* SageApp/Features/PlanTimeline/PlanTimelineAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000021D /* SageApp/Features/PlanTimeline/PlanTimelineAdapters.swift */; };
+		A0000000000000000000011C /* SageApp/Features/PlanTimeline/PlanPageScrollState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000021E /* SageApp/Features/PlanTimeline/PlanPageScrollState.swift */; };
+		A0000000000000000000011D /* SageApp/Features/PlanTimeline/PlanListScrollState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000021F /* SageApp/Features/PlanTimeline/PlanListScrollState.swift */; };
+		A0000000000000000000011E /* SageApp/Features/PlanTimeline/Views/PlanPreviewSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000220 /* SageApp/Features/PlanTimeline/Views/PlanPreviewSurface.swift */; };
+		A0000000000000000000011F /* SageApp/Features/PlanTimeline/Views/PlanTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000221 /* SageApp/Features/PlanTimeline/Views/PlanTimelineView.swift */; };
+		A00000000000000000000120 /* SageApp/Features/PlanTimeline/Views/PlanTimelineListRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000222 /* SageApp/Features/PlanTimeline/Views/PlanTimelineListRepresentable.swift */; };
+		A00000000000000000000121 /* SageApp/Features/PlanTimeline/Views/PlanTimelineItemCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000223 /* SageApp/Features/PlanTimeline/Views/PlanTimelineItemCell.swift */; };
+		A00000000000000000000122 /* SageApp/Features/PlanTimeline/Views/PlanMonthYearSideBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000224 /* SageApp/Features/PlanTimeline/Views/PlanMonthYearSideBar.swift */; };
+		A00000000000000000000123 /* SageApp/Features/PlanTimeline/Views/PlanFromTodayPopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000225 /* SageApp/Features/PlanTimeline/Views/PlanFromTodayPopupView.swift */; };
+		A00000000000000000000124 /* SageApp/Features/PlanTimeline/Views/PlanScrollBackToTodayButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000226 /* SageApp/Features/PlanTimeline/Views/PlanScrollBackToTodayButton.swift */; };
+		A00000000000000000000125 /* SageApp/Features/PlanTimeline/Views/PlanResizingOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000227 /* SageApp/Features/PlanTimeline/Views/PlanResizingOverlayView.swift */; };
+		A00000000000000000000126 /* SageApp/Features/PlanTimeline/Views/PlanMonthlyCalendarContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000228 /* SageApp/Features/PlanTimeline/Views/PlanMonthlyCalendarContainer.swift */; };
+		A00000000000000000000127 /* SageApp/Features/PlanTimeline/Views/PlanYearlyCalendarContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000229 /* SageApp/Features/PlanTimeline/Views/PlanYearlyCalendarContainer.swift */; };
+		A00000000000000000000128 /* SageApp/Features/PlanTimeline/Views/PlanUnscheduledTasksSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000022A /* SageApp/Features/PlanTimeline/Views/PlanUnscheduledTasksSection.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,6 +84,24 @@
 		A00000000000000000000216 /* SageAppTests/SageAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageAppTests/SageAppTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000217 /* SageApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = SageApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000218 /* SageAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = SageAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000219 /* SageApp/Features/PlanTimeline/PlanTimelineHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/PlanTimelineHomeView.swift; sourceTree = "<group>"; };
+		A0000000000000000000021A /* SageApp/Features/PlanTimeline/PlanTimelineManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/PlanTimelineManager.swift; sourceTree = "<group>"; };
+		A0000000000000000000021B /* SageApp/Features/PlanTimeline/PlanTimelineRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/PlanTimelineRepository.swift; sourceTree = "<group>"; };
+		A0000000000000000000021C /* SageApp/Features/PlanTimeline/PlanTimelineModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/PlanTimelineModels.swift; sourceTree = "<group>"; };
+		A0000000000000000000021D /* SageApp/Features/PlanTimeline/PlanTimelineAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/PlanTimelineAdapters.swift; sourceTree = "<group>"; };
+		A0000000000000000000021E /* SageApp/Features/PlanTimeline/PlanPageScrollState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/PlanPageScrollState.swift; sourceTree = "<group>"; };
+		A0000000000000000000021F /* SageApp/Features/PlanTimeline/PlanListScrollState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/PlanListScrollState.swift; sourceTree = "<group>"; };
+		A00000000000000000000220 /* SageApp/Features/PlanTimeline/Views/PlanPreviewSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/Views/PlanPreviewSurface.swift; sourceTree = "<group>"; };
+		A00000000000000000000221 /* SageApp/Features/PlanTimeline/Views/PlanTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/Views/PlanTimelineView.swift; sourceTree = "<group>"; };
+		A00000000000000000000222 /* SageApp/Features/PlanTimeline/Views/PlanTimelineListRepresentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/Views/PlanTimelineListRepresentable.swift; sourceTree = "<group>"; };
+		A00000000000000000000223 /* SageApp/Features/PlanTimeline/Views/PlanTimelineItemCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/Views/PlanTimelineItemCell.swift; sourceTree = "<group>"; };
+		A00000000000000000000224 /* SageApp/Features/PlanTimeline/Views/PlanMonthYearSideBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/Views/PlanMonthYearSideBar.swift; sourceTree = "<group>"; };
+		A00000000000000000000225 /* SageApp/Features/PlanTimeline/Views/PlanFromTodayPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/Views/PlanFromTodayPopupView.swift; sourceTree = "<group>"; };
+		A00000000000000000000226 /* SageApp/Features/PlanTimeline/Views/PlanScrollBackToTodayButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/Views/PlanScrollBackToTodayButton.swift; sourceTree = "<group>"; };
+		A00000000000000000000227 /* SageApp/Features/PlanTimeline/Views/PlanResizingOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/Views/PlanResizingOverlayView.swift; sourceTree = "<group>"; };
+		A00000000000000000000228 /* SageApp/Features/PlanTimeline/Views/PlanMonthlyCalendarContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/Views/PlanMonthlyCalendarContainer.swift; sourceTree = "<group>"; };
+		A00000000000000000000229 /* SageApp/Features/PlanTimeline/Views/PlanYearlyCalendarContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/Views/PlanYearlyCalendarContainer.swift; sourceTree = "<group>"; };
+		A0000000000000000000022A /* SageApp/Features/PlanTimeline/Views/PlanUnscheduledTasksSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SageApp/Features/PlanTimeline/Views/PlanUnscheduledTasksSection.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -153,6 +189,7 @@
 				A0000000000000000000020B /* SageApp/Features/Inbox/InboxFeature.swift */,
 				A0000000000000000000020C /* SageApp/Features/Tasks/TasksFeature.swift */,
 				A0000000000000000000020D /* SageApp/Features/Timeline/TimelineFeature.swift */,
+				A0000000000000000000070A /* PlanTimeline */,
 				A0000000000000000000020E /* SageApp/Features/Notes/NotesFeature.swift */,
 				A0000000000000000000020F /* SageApp/Features/Tags/TagsFeature.swift */,
 				A00000000000000000000210 /* SageApp/Features/Search/SearchFeature.swift */,
@@ -160,6 +197,39 @@
 				A00000000000000000000212 /* SageApp/Features/AI/AIFeature.swift */,
 			);
 			name = Features;
+			sourceTree = "<group>";
+		};
+		A0000000000000000000070A /* PlanTimeline */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000219 /* SageApp/Features/PlanTimeline/PlanTimelineHomeView.swift */,
+				A0000000000000000000021A /* SageApp/Features/PlanTimeline/PlanTimelineManager.swift */,
+				A0000000000000000000021B /* SageApp/Features/PlanTimeline/PlanTimelineRepository.swift */,
+				A0000000000000000000021C /* SageApp/Features/PlanTimeline/PlanTimelineModels.swift */,
+				A0000000000000000000021D /* SageApp/Features/PlanTimeline/PlanTimelineAdapters.swift */,
+				A0000000000000000000021E /* SageApp/Features/PlanTimeline/PlanPageScrollState.swift */,
+				A0000000000000000000021F /* SageApp/Features/PlanTimeline/PlanListScrollState.swift */,
+				A0000000000000000000070B /* Views */,
+			);
+			name = PlanTimeline;
+			sourceTree = "<group>";
+		};
+		A0000000000000000000070B /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000220 /* SageApp/Features/PlanTimeline/Views/PlanPreviewSurface.swift */,
+				A00000000000000000000221 /* SageApp/Features/PlanTimeline/Views/PlanTimelineView.swift */,
+				A00000000000000000000222 /* SageApp/Features/PlanTimeline/Views/PlanTimelineListRepresentable.swift */,
+				A00000000000000000000223 /* SageApp/Features/PlanTimeline/Views/PlanTimelineItemCell.swift */,
+				A00000000000000000000224 /* SageApp/Features/PlanTimeline/Views/PlanMonthYearSideBar.swift */,
+				A00000000000000000000225 /* SageApp/Features/PlanTimeline/Views/PlanFromTodayPopupView.swift */,
+				A00000000000000000000226 /* SageApp/Features/PlanTimeline/Views/PlanScrollBackToTodayButton.swift */,
+				A00000000000000000000227 /* SageApp/Features/PlanTimeline/Views/PlanResizingOverlayView.swift */,
+				A00000000000000000000228 /* SageApp/Features/PlanTimeline/Views/PlanMonthlyCalendarContainer.swift */,
+				A00000000000000000000229 /* SageApp/Features/PlanTimeline/Views/PlanYearlyCalendarContainer.swift */,
+				A0000000000000000000022A /* SageApp/Features/PlanTimeline/Views/PlanUnscheduledTasksSection.swift */,
+			);
+			name = Views;
 			sourceTree = "<group>";
 		};
 		A00000000000000000000708 /* Resources */ = {
@@ -292,6 +362,24 @@
 				A00000000000000000000110 /* SageApp/Features/Search/SearchFeature.swift in Sources */,
 				A00000000000000000000111 /* SageApp/Features/Settings/SettingsFeature.swift in Sources */,
 				A00000000000000000000112 /* SageApp/Features/AI/AIFeature.swift in Sources */,
+				A00000000000000000000117 /* SageApp/Features/PlanTimeline/PlanTimelineHomeView.swift in Sources */,
+				A00000000000000000000118 /* SageApp/Features/PlanTimeline/PlanTimelineManager.swift in Sources */,
+				A00000000000000000000119 /* SageApp/Features/PlanTimeline/PlanTimelineRepository.swift in Sources */,
+				A0000000000000000000011A /* SageApp/Features/PlanTimeline/PlanTimelineModels.swift in Sources */,
+				A0000000000000000000011B /* SageApp/Features/PlanTimeline/PlanTimelineAdapters.swift in Sources */,
+				A0000000000000000000011C /* SageApp/Features/PlanTimeline/PlanPageScrollState.swift in Sources */,
+				A0000000000000000000011D /* SageApp/Features/PlanTimeline/PlanListScrollState.swift in Sources */,
+				A0000000000000000000011E /* SageApp/Features/PlanTimeline/Views/PlanPreviewSurface.swift in Sources */,
+				A0000000000000000000011F /* SageApp/Features/PlanTimeline/Views/PlanTimelineView.swift in Sources */,
+				A00000000000000000000120 /* SageApp/Features/PlanTimeline/Views/PlanTimelineListRepresentable.swift in Sources */,
+				A00000000000000000000121 /* SageApp/Features/PlanTimeline/Views/PlanTimelineItemCell.swift in Sources */,
+				A00000000000000000000122 /* SageApp/Features/PlanTimeline/Views/PlanMonthYearSideBar.swift in Sources */,
+				A00000000000000000000123 /* SageApp/Features/PlanTimeline/Views/PlanFromTodayPopupView.swift in Sources */,
+				A00000000000000000000124 /* SageApp/Features/PlanTimeline/Views/PlanScrollBackToTodayButton.swift in Sources */,
+				A00000000000000000000125 /* SageApp/Features/PlanTimeline/Views/PlanResizingOverlayView.swift in Sources */,
+				A00000000000000000000126 /* SageApp/Features/PlanTimeline/Views/PlanMonthlyCalendarContainer.swift in Sources */,
+				A00000000000000000000127 /* SageApp/Features/PlanTimeline/Views/PlanYearlyCalendarContainer.swift in Sources */,
+				A00000000000000000000128 /* SageApp/Features/PlanTimeline/Views/PlanUnscheduledTasksSection.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

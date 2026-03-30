@@ -138,7 +138,7 @@ private struct TasksTabScene: View {
 private struct PlanTabScene: View {
     var body: some View {
         AppTabContainer {
-            TimelineScreen()
+            PlanTimelineHomeView()
         }
     }
 }
